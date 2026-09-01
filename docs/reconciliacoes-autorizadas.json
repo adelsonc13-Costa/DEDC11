@@ -1,0 +1,35 @@
+{
+  "versao": 1,
+  "autorizado_por": "responsável informado na sessão",
+  "data_registro": "2026-08-21",
+  "correcoes": [
+    {
+      "modulo": "promocao_tecnicos_analistas",
+      "nome_completo": "FERNANDO DE SOUZA NUNES",
+      "matricula_origem": "74493156",
+      "matricula_reconciliada": "74493156",
+      "motivo": "matrícula confirmada pelo responsável"
+    },
+    {
+      "modulo": "promocao_tecnicos_analistas",
+      "nome_completo": "GEOVANA SANTOS CEDRAZ",
+      "matricula_origem": "74493156",
+      "matricula_reconciliada": "74505880",
+      "motivo": "matrícula corrigida e confirmada pelo responsável"
+    },
+    {
+      "modulo": "relatorio_de_estagiarios",
+      "nome_completo": "SUELY RIBEIRO DE SOUZA",
+      "matricula_origem": "92181958",
+      "matricula_reconciliada": "92181958",
+      "motivo": "matrícula gerada pelo sistema e confirmada pelo responsável"
+    },
+    {
+      "modulo": "relatorio_de_estagiarios",
+      "nome_completo": "SUELEN MENEZES DOS SANTOS",
+      "matricula_origem": "92181958",
+      "matricula_reconciliada": "92181439",
+      "motivo": "matrícula corrigida, gerada pelo sistema e confirmada pelo responsável"
+    }
+  ]
+}

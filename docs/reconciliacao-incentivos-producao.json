@@ -1,0 +1,15 @@
+{
+  "sourceCount": 47,
+  "inserted": 46,
+  "updated": 1,
+  "matchedCount": 46,
+  "unmatchedCount": 1,
+  "unmatched": [
+    {
+      "matricula": "92141104",
+      "nome": "NATHAN PEREIRA DOURADO",
+      "portaria": "00944824/28-05-2025"
+    }
+  ],
+  "generatedAt": "2026-08-21T19:37:16.276Z"
+}

@@ -1,0 +1,24 @@
+{
+  "relatorio_de_contatos": [
+    {"nome":"ADAILSON DE ASSIS SANTOS","setor":"Administrativo","telefone":"(75) 9 8195-6767","email":"Adailsondea@gmail.com"},
+    {"nome":"ADAILTON GOMES DOS REIS","setor":"Recursos Humanos","telefone":"(75) 9 9109-9474","email":null},
+    {"nome":"ADELSON DE JESUS COSTA","setor":"Recursos Humanos","telefone":"(71) 9 9734-8827","email":"ajcosta@uneb.br"}
+  ],
+  "relatorio_tempo_de_servico": [
+    {"nome":"RENATO LEONE MIRANDA LEDA","setor":"Col. Geografia","cargo":"Docente","data_nascimento":"14/04/1963","averbacao_dias":0,"data_contratacao_uneb":"09/03/1987"},
+    {"nome":"MARA LUCIA OLIVEIRA DE ARAUJO","setor":"Direção","cargo":"Técnico Universitário","data_nascimento":"27/02/1961","averbacao_dias":0,"data_contratacao_uneb":"27/07/1993"}
+  ],
+  "relatorio_promocao_tecnicos_e_analistas": [
+    {"nome":"RUBIA CARLA LIMA DE OLIVEIRA","matricula":"74334171","data_nascimento":"24/05/2000","cargo":"Técnico Universitário"},
+    {"nome":"RAFAEL LIMA DE OLIVEIRA","matricula":"92157351","data_nascimento":"22/10/1993","cargo":"Técnico Universitário"}
+  ],
+  "relatorio_estagiarios": [
+    {"nome":"ANDRESSA SANTOS PINHEIRO","matricula":"92133135","cursando":"PEDAGOGIA","setor_atuacao":"NUPE","turno":"MATUTINO","responsavel":"Nelia Matos","numero_processo":"074.8584.2024.0074665-41","bolsa":"SEM BOLSA","data_contratacao":"30/09/2024","renovacao":"Sim"}
+  ],
+  "relatorio_promocao_docente": [
+    {"nome":"ADRIANA CARNEIRO DA SILVA","matricula":"92118841","setor":"Col. Administração","carga_horaria":40,"portaria":"00779114/23-04-2024","processo_sei":"074.6902.2024.0084196-76"}
+  ],
+  "incentivo_producao_cientifica": [
+    {"nome":"JOAO LUIZ DA SILVA CASAS","matricula":"92107257","numero_portaria":"00803166/19-06-2024","colegiado":"Administração","data_inicio":"13/06/2024","data_termino":"12/06/2026","dias_faltantes":"Expirado"}
+  ]
+}

@@ -1,0 +1,2 @@
+ALTER TABLE `importConflicts` ADD `serverId` int;--> statement-breakpoint
+ALTER TABLE `importConflicts` ADD CONSTRAINT `importConflicts_serverId_servers_id_fk` FOREIGN KEY (`serverId`) REFERENCES `servers`(`id`) ON DELETE no action ON UPDATE no action;

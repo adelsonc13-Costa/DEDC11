@@ -1,0 +1,1 @@
+ALTER TABLE `interns` ADD `vencimento` date;

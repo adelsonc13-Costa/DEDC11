@@ -1,0 +1,2 @@
+ALTER TABLE `terceirizados` ADD `serverId` int;--> statement-breakpoint
+ALTER TABLE `terceirizados` ADD CONSTRAINT `terceirizados_serverId_servers_id_fk` FOREIGN KEY (`serverId`) REFERENCES `servers`(`id`) ON DELETE no action ON UPDATE no action;
