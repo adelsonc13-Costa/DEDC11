@@ -69,7 +69,7 @@ function PanelHeader({ eyebrow, title, description }: { eyebrow: string; title: 
 }
 
 export default function Home() {
-  const demoMode = false;
+  const demoMode = import.meta.env.VITE_DEMO_MODE === "true";
   const functionalList = trpc.functional.list.useQuery({ search: "" });
   const functionalSummary = trpc.functional.summary.useQuery();
   const reviewQueue = trpc.functional.reviewQueue.useQuery();
