@@ -69,7 +69,7 @@ function PanelHeader({ eyebrow, title, description }: { eyebrow: string; title: 
 }
 
 export default function Home() {
-  const demoMode = import.meta.env.VITE_DEMO_MODE === "true";
+  const demoMode = false;
   const functionalList = trpc.functional.list.useQuery({ search: "" });
   const functionalSummary = trpc.functional.summary.useQuery();
   const reviewQueue = trpc.functional.reviewQueue.useQuery();
@@ -199,8 +199,7 @@ export default function Home() {
   const openMaster = () => { setActive("servidores"); setMobileOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
 
   return <div className="min-h-screen bg-[#f6f4ef] text-[#102641]">
-    <div className="fixed inset-x-0 top-0 z-50 border-b border-amber-200 bg-[#fff8e8] px-4 py-2 text-center text-[11px] font-semibold tracking-wide text-[#795d29]">MODO DEMONSTRAÇÃO · dados fictícios para visualização da interface</div>
-    <div className="flex min-h-screen pt-8">
+       <div className="flex min-h-screen pt-8">
       <aside className={`${mobileOpen ? "translate-x-0" : "-translate-x-full"} fixed inset-y-0 left-0 z-40 w-[270px] bg-[#102641] text-white transition-transform duration-200 lg:sticky lg:top-8 lg:flex lg:h-[calc(100vh-2rem)] lg:translate-x-0 lg:flex-col`}>
         <div className="flex h-24 items-center gap-3 border-b border-white/10 px-6"><div className="grid h-11 w-11 place-items-center rounded-xl bg-[#d8b56d] text-[#102641]"><Archive className="h-6 w-6" /></div><div><p className="text-sm font-semibold tracking-wide">DEDC XI</p><p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-slate-400">Vida funcional</p></div><button className="ml-auto lg:hidden" onClick={() => setMobileOpen(false)} aria-label="Fechar menu"><X className="h-5 w-5" /></button></div>
         <div className="px-4 py-6"><p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Navegação</p><nav className="space-y-1">{nav.map(item => <button key={item.id} onClick={() => showModule(item.id)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition ${active === item.id ? "bg-[#e9c476] font-semibold text-[#102641]" : "text-slate-300 hover:bg-white/10 hover:text-white"}`}><item.icon className="h-[18px] w-[18px]" />{item.label}</button>)}</nav></div>
