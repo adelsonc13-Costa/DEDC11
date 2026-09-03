@@ -257,6 +257,8 @@ export async function ensureTablesExist() {
       { table: "servers", column: "cargoComissionado", definition: "VARCHAR(80)" },
       { table: "servers", column: "substitutoComissionado", definition: "VARCHAR(180)" },
       { table: "servers", column: "portariaSubstituicao", definition: "VARCHAR(180)" },
+      { table: "servers", column: "contrato", definition: "VARCHAR(120)" },
+      { table: "servers", column: "empresa", definition: "VARCHAR(180)" },
     ];
 
     for (const { table, column, definition } of columnsToAdd) {
