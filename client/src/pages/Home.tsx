@@ -262,10 +262,14 @@ const createServerFromDraft = async () => {
       utils.functional.list.invalidate(),
       utils.functional.summary.invalidate(),
     ]);
-  } catch {
+    } catch {
     setCreateError(
       "Não foi possível incluir. Verifique se a matrícula já existe e se os campos obrigatórios estão preenchidos.",
     );
   }
 };
+
+  </div>;
+}
+
 
