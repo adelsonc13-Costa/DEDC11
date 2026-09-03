@@ -259,6 +259,15 @@ export async function ensureTablesExist() {
       { table: "servers", column: "portariaSubstituicao", definition: "VARCHAR(180)" },
       { table: "servers", column: "contrato", definition: "VARCHAR(120)" },
       { table: "servers", column: "empresa", definition: "VARCHAR(180)" },
+            { table: "servers", column: "chefeImediato", definition: "VARCHAR(180)" },
+      { table: "servers", column: "empresaTerceirizada", definition: "VARCHAR(80)" },
+      { table: "servers", column: "contratoTerceirizado", definition: "VARCHAR(120)" },
+      { table: "servers", column: "funcaoTerceirizado", definition: "VARCHAR(80)" },
+      { table: "servers", column: "nivelRecepcionista", definition: "INT" },
+      { table: "servers", column: "cnhNumero", definition: "VARCHAR(32)" },
+      { table: "servers", column: "cnhCategoria", definition: "VARCHAR(16)" },
+      { table: "servers", column: "cnhVencimento", definition: "DATE" },
+      { table: "servers", column: "cnhCursoVan", definition: "VARCHAR(8)" },
     ];
 
     for (const { table, column, definition } of columnsToAdd) {
