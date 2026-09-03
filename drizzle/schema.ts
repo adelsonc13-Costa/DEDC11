@@ -1,3 +1,18 @@
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, date } from "drizzle-orm/mysql-core";
+import { relations } from "drizzle-orm";
+
+export const users = mysqlTable("users", {
+  id: int("id").autoincrement().primaryKey(),
+  openId: varchar("openId", { length: 64 }).notNull().unique(),
+  name: text("name").notNull(),
+  email: varchar("email", { length: 320 }),
+  loginMethod: varchar("loginMethod", { length: 64 }).default("local"),
+  role: varchar("role", { length: 32 }).default("user"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  lastSignedIn: timestamp("lastSignedIn"),
+});
+
 export const servers = mysqlTable("servers", {
   id: int("id").autoincrement().primaryKey(),
   idMestre: varchar("idMestre", { length: 36 }).notNull().unique(),
@@ -45,3 +60,57 @@ export const servers = mysqlTable("servers", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
+
+export const interns = mysqlTable("interns", {
+  id: int("id").autoincrement().primaryKey(),
+  name: text("name").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const productionIncentives = mysqlTable("productionIncentives", {
+  id: int("id").autoincrement().primaryKey(),
+  serverId: int("serverId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const functionalActs = mysqlTable("functionalActs", {
+  id: int("id").autoincrement().primaryKey(),
+  serverId: int("serverId"),
+  type: varchar("type", { length: 100 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const frequenciasTerceirizados = mysqlTable("frequenciasTerceirizados", {
+  id: int("id").autoincrement().primaryKey(),
+  serverId: int("serverId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const detectedPublications = mysqlTable("detectedPublications", {
+  id: int("id").autoincrement().primaryKey(),
+  title: text("title"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const importConflicts = mysqlTable("importConflicts", {
+  id: int("id").autoincrement().primaryKey(),
+  details: text("details"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const importRuns = mysqlTable("importRuns", {
+  id: int("id").autoincrement().primaryKey(),
+  status: varchar("status", { length: 50 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const contacts = mysqlTable("contacts", {
+  id: int("id").autoincrement().primaryKey(),
+  name: text("name"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
+export type Server = typeof servers.$inferSelect;
+export type InsertServer = typeof servers.$inferInsert;
