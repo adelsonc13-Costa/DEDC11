@@ -60,6 +60,11 @@ export const appRouter = router({
       afastamentoDataFim: nullableDate,
       afastamentoDocumentoSei: nullableText,
       ultimaVarredura: nullableDate,
+      cargoComissionado: nullableText,
+      substitutoComissionado: nullableText,
+      portariaSubstituicao: nullableText,
+      contrato: nullableText,
+      empresa: nullableText,
       changedBy: z.string().optional(),
     })).mutation(({ input }) => {
       const { id, changedBy, ...patch } = input;
@@ -101,6 +106,11 @@ export const appRouter = router({
       afastamentoDataFim: nullableDate,
       afastamentoDocumentoSei: nullableText,
       ultimaVarredura: nullableDate,
+      cargoComissionado: nullableText,
+      substitutoComissionado: nullableText,
+      portariaSubstituicao: nullableText,
+      contrato: nullableText,
+      empresa: nullableText,
       changedBy: z.string().optional(),
     })).mutation(({ input }) => { const { changedBy, ...serverInput } = input; return createServerRecord(serverInput as typeof servers.$inferInsert, changedBy ?? "modo-demo"); }),
     deleteServer: publicProcedure.input(z.object({ id: z.number().int().positive(), changedBy: z.string().optional() })).mutation(({ input }) => deleteServerRecord(input.id, input.changedBy ?? "modo-demo")),
