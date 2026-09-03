@@ -173,15 +173,36 @@ export default function Home() {
   const exportServers = () => { const header = "Matrícula,Nome,Vínculo,Cargo,Regime,Contratação,Ato mais recente\n"; const body = filteredRecords.map(server => [server.registration, server.name, server.role, server.cargo, server.regime, server.contract, server.latestAct].map(value => `"${value}"`).join(",")).join("\n"); const blob = new Blob([header + body], { type: "text/csv;charset=utf-8" }); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = "servidores-dedc-xi-demo.csv"; link.click(); URL.revokeObjectURL(url); };
   const exportDeCsv = () => { const header = "Nome,Matrícula,Status,Portaria,Fonte,Tipo,Período,Início,Justificativa\n"; const validated = deValidated.map(item => [item.name, "", "Vigente", item.portaria, item.source, item.type, item.period, item.start, "Portaria específica localizada"]); const reclassified = deReclassified.map(item => [item.name, item.registration, "Reclassificado", "", item.source, item.type, "", "", item.reason]); const body = [...validated, ...reclassified].map(row => row.map(value => `"${value}"`).join(",")).join("\n"); const blob = new Blob([header + body], { type: "text/csv;charset=utf-8" }); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = "modulo-de-dedicacao-exclusiva-demo.csv"; link.click(); URL.revokeObjectURL(url); };
   const exportDePdf = () => { const escapeHtml = (value: string) => value.replace(/[&<>\"]/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[character] ?? character)); const validatedRows = deValidated.map(item => `<tr><td>${escapeHtml(item.name)}</td><td>${escapeHtml(item.portaria)}</td><td>${escapeHtml(item.source)}</td><td>${escapeHtml(item.type)}</td><td>${escapeHtml(item.start)}</td></tr>`).join(""); const reclassifiedRows = deReclassified.map(item => `<tr><td>${escapeHtml(item.name)}</td><td>${escapeHtml(item.registration)}</td><td>${escapeHtml(item.type)}</td><td colspan="2">${escapeHtml(item.reason)}</td></tr>`).join(""); const printWindow = window.open("", "_blank", "noopener,noreferrer"); if (printWindow) { printWindow.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório D.E. — DEDC XI</title><style>@page{size:A4;margin:16mm}*{box-sizing:border-box}body{font:10px Arial,sans-serif;color:#182d43;margin:0}.header{border-bottom:4px solid #d8b56d;padding-bottom:14px;margin-bottom:18px}.brand{font-weight:800;letter-spacing:.18em;font-size:13px}.unit{color:#637487;font-size:10px;margin-top:5px}.eyebrow{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#987638;font-weight:700;margin:20px 0 7px}.title{font:700 24px Georgia,serif;margin:0}.subtitle{color:#637487;line-height:1.5}.metrics{display:flex;gap:10px;margin:15px 0}.metric{border:1px solid #ddd8cc;padding:10px;flex:1;background:#faf8f2}.metric b{display:block;font:700 22px Georgia,serif;margin-top:4px}.metric span{font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:#7d6a48}table{width:100%;border-collapse:collapse;margin:8px 0 18px}th{text-align:left;background:#102641;color:#fff;padding:7px;font-size:8px;text-transform:uppercase;letter-spacing:.08em}td{border-bottom:1px solid #e8e3d9;padding:7px;vertical-align:top;line-height:1.35}.validated th{background:#39724d}.reclassified th{background:#9d4d3d}.footer{border-top:1px solid #ddd8cc;margin-top:20px;padding-top:9px;color:#788695;font-size:8px;line-height:1.5}</style></head><body><header class="header"><div class="brand">UNEB · DEDC XI</div><div class="unit">Departamento de Educação · Campus XI · Serrinha</div></header><div class="eyebrow">Relatório demonstrativo de conciliação</div><h1 class="title">Dedicação Exclusiva</h1><p class="subtitle">Mapa de evidências, portarias e casos reclassificados para acompanhamento funcional.</p><div class="metrics"><div class="metric"><span>D.E. validados</span><b>12</b></div><div class="metric"><span>Reclassificados</span><b>13</b></div><div class="metric"><span>Fontes consultadas</span><b>03</b></div></div><div class="eyebrow">Evidência confirmada</div><table class="validated"><thead><tr><th>Nome</th><th>Portaria</th><th>Fonte</th><th>Tipo</th><th>Início</th></tr></thead><tbody>${validatedRows}</tbody></table><div class="eyebrow">Revisão necessária</div><table class="reclassified"><thead><tr><th>Nome</th><th>Matrícula</th><th>Natureza</th><th colspan="2">Justificativa</th></tr></thead><tbody>${reclassifiedRows}</tbody></table><div class="footer"><b>MODO DEMONSTRAÇÃO — dados fictícios.</b> Este relatório apresenta uma simulação visual e não substitui documento oficial. A validação institucional deve preservar a fonte, a data de consulta, o responsável pela revisão e a trilha de auditoria.</div></body></html>`); printWindow.document.close(); printWindow.focus(); printWindow.print(); } };
+  
   const createServerFromDraft = async () => {
     setCreateError(null);
     try {
-      await createServer.mutateAsync({ ...createDraft, dataNascimento: createDraft.dataNascimento || null, dataContratacao: createDraft.dataContratacao || null, dataTerminoVigencia: createDraft.dataTerminoVigencia || null, changedBy: "usuário-demo" });
+      let dadosParaSalvar = { ...createDraft };
+
+      if (createDraft.categoria === "Terceirizado") {
+        if (createDraft.cpf) {
+          const cpfLimpo = createDraft.cpf.replace(/\D/g, '');
+          dadosParaSalvar.matricula = `TERC-${cpfLimpo}`;
+        } else {
+          const timestamp = new Date().getTime().toString().slice(-8);
+          dadosParaSalvar.matricula = `TERC-${timestamp}`;
+        }
+      }
+
+      await createServer.mutateAsync({ 
+        ...dadosParaSalvar, 
+        dataNascimento: dadosParaSalvar.dataNascimento || null, 
+        dataContratacao: dadosParaSalvar.dataContratacao || null, 
+        dataTerminoVigencia: dadosParaSalvar.dataTerminoVigencia || null, 
+        changedBy: "usuário-demo" 
+      });
+      
       setCreateOpen(false);
       setCreateDraft({ matricula: "", nomeOriginal: "", categoria: "", status: "Ativo", cargo: "", setor: "", cargaHoraria: "", cpf: "", rg: "", telefone: "", emailInstitucional: "", emailPessoal: "", dataNascimento: "", dataContratacao: "", dataTerminoVigencia: "", participarComemoracao: "Sim", motivoNaoParticipar: "", docenteClasse: "", docenteNivel: "", tecnicoNivel: "", grau: "", referencia: "", estagiarioCalculaVigencia: "Não", contagemRenovacao: "0", terceirizadoSubstituto: "Não", idServidorSubstituido: "", incentivoTipo: "", incentivoPortaria: "", incentivoDataInicio: "", incentivoDataValidade: "", afastamentoMotivo: "", afastamentoDataInicio: "", afastamentoDataFim: "", afastamentoDocumentoSei: "", ultimaVarredura: "", cargoComissionado: "Nenhum", substitutoComissionado: "", portariaSubstituicao: "" });
       await Promise.all([utils.functional.list.invalidate(), utils.functional.summary.invalidate()]);
     } catch { setCreateError("Não foi possível incluir. Verifique se a matrícula já existe e se os campos obrigatórios estão preenchidos."); }
   };
+
   const removeServer = async (record: { id?: number; name: string }) => {
     if (!record.id || !window.confirm(`Autorizar exclusão de ${record.name}? Esta ação será registrada na auditoria.`)) return;
     try {
