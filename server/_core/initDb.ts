@@ -252,7 +252,24 @@ export async function ensureTablesExist() {
     for (const statement of statements) {
       await connection.query(statement);
     }
+    // Adiciona colunas novas em tabelas já existentes, sem apagar dados.
+    const columnsToAdd: Array<{ table: string; column: string; definition: string }> = [
+      { table: "servers", column: "cargoComissionado", definition: "VARCHAR(80)" },
+      { table: "servers", column: "substitutoComissionado", definition: "VARCHAR(180)" },
+      { table: "servers", column: "portariaSubstituicao", definition: "VARCHAR(180)" },
+    ];
 
+    for (const { table, column, definition } of columnsToAdd) {
+      const [rows] = await connection.query(
+        `SELECT COUNT(*) as cnt FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+        [table, column]
+      );
+      const exists = (rows as any)[0]?.cnt > 0;
+      if (!exists) {
+        await connection.query(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+        console.log(`[InitDB] Added column ${column} to ${table}.`);
+      }
+    }
     console.log("[InitDB] All tables verified/created successfully.");
   } catch (error) {
     console.error("[InitDB] Failed to create tables:", error);
