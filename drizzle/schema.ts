@@ -53,7 +53,7 @@ export const servers = mysqlTable("servers", {
   afastamentoDocumentoSei: varchar("afastamentoDocumentoSei", { length: 180 }),
   ultimaVarredura: timestamp("ultimaVarredura"),
   cargoComissionado: varchar("cargoComissionado", { length: 80 }),
-    chefeImediato: varchar("chefeImediato", { length: 180 }),
+  chefeImediato: varchar("chefeImediato", { length: 180 }),
   empresaTerceirizada: varchar("empresaTerceirizada", { length: 80 }),
   contratoTerceirizado: varchar("contratoTerceirizado", { length: 120 }),
   funcaoTerceirizado: varchar("funcaoTerceirizado", { length: 80 }),
@@ -205,4 +205,6 @@ export const detectedPublications = mysqlTable("detectedPublications", {
   sourceKey: varchar("sourceKey", { length: 80 }).notNull(),
   sourceLabel: varchar("sourceLabel", { length: 180 }).notNull(),
   sourceUrl: varchar("sourceUrl", { length: 500 }).notNull(),
-  documentUrl:
+  documentUrl: varchar("documentUrl", { length: 500 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
