@@ -206,5 +206,93 @@ export const detectedPublications = mysqlTable("detectedPublications", {
   sourceLabel: varchar("sourceLabel", { length: 180 }).notNull(),
   sourceUrl: varchar("sourceUrl", { length: 500 }).notNull(),
   documentUrl: varchar("documentUrl", { length: 500 }),
+  eventType: varchar("eventType", { length: 80 }).notNull(),
+  publicationDate: date("publicationDate"),
+  description: text("description"),
+  documentText: text("documentText"),
+  scanMode: mysqlEnum("scanMode", ["historical", "daily"]).notNull(),
+  fingerprint: varchar("fingerprint", { length: 64 }).notNull().unique(),
+  reviewStatus: mysqlEnum("reviewStatus", [
+    "pending",
+    "approved",
+    "discarded",
+  ]).default("pending").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
+
+export const importRuns = mysqlTable("importRuns", {
+  id: int("id").autoincrement().primaryKey(),
+  source: varchar("source", { length: 255 }).notNull(),
+  version: varchar("version", { length: 64 }).notNull(),
+  status: mysqlEnum("status", [
+    "dry_run",
+    "committed",
+    "failed",
+  ]).notNull(),
+  insertedCount: int("insertedCount").default(0).notNull(),
+  updatedCount: int("updatedCount").default(0).notNull(),
+  pendingCount: int("pendingCount").default(0).notNull(),
+  notes: text("notes"),
+  scheduleCronTaskUid: varchar("scheduleCronTaskUid", {
+    length: 65,
+  }).unique(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const importConflicts = mysqlTable("importConflicts", {
+  id: int("id").autoincrement().primaryKey(),
+  runId: int("runId").references(() => importRuns.id),
+  serverId: int("serverId").references(() => servers.id),
+  module: varchar("module", { length: 120 }).notNull(),
+  recordKey: varchar("recordKey", { length: 120 }),
+  conflictType: varchar("conflictType", { length: 100 }).notNull(),
+  details: text("details").notNull(),
+  status: mysqlEnum("status", [
+    "pending",
+    "resolved",
+    "ignored",
+  ]).default("pending").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const serversRelations = relations(servers, ({ many }) => ({
+  contacts: many(contacts),
+  serviceRecords: many(serviceRecords),
+  interns: many(interns),
+  functionalActs: many(functionalActs),
+  productionIncentives: many(productionIncentives),
+  terceirizados: many(terceirizados),
+}));
+
+export const terceirizadosRelations = relations(terceirizados, ({ many }) => ({
+  frequencias: many(frequenciasTerceirizados),
+}));
+
+export const serverChangeHistoryRelations = relations(
+  serverChangeHistory,
+  ({ one }) => ({
+    server: one(servers, {
+      fields: [serverChangeHistory.serverId],
+      references: [servers.id],
+    }),
+  }),
+);
+
+export const detectedPublicationsRelations = relations(
+  detectedPublications,
+  ({ one }) => ({
+    server: one(servers, {
+      fields: [detectedPublications.serverId],
+      references: [servers.id],
+    }),
+  }),
+);
+
+export const importRunsRelations = relations(importRuns, ({ many }) => ({
+  conflicts: many(importConflicts),
+}));
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
+export type Server = typeof servers.$inferSelect;
+export type InsertServer = typeof servers.$inferInsert;
