@@ -4,13 +4,13 @@ import { relations } from "drizzle-orm";
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
   openId: varchar("openId", { length: 64 }).notNull().unique(),
-  name: text("name").notNull(),
+  name: text("name"),
   email: varchar("email", { length: 320 }),
-  loginMethod: varchar("loginMethod", { length: 64 }).default("local"),
-  role: varchar("role", { length: 32 }).default("user"),
+  loginMethod: varchar("loginMethod", { length: 64 }),
+  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-  lastSignedIn: timestamp("lastSignedIn"),
+  lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
 export const servers = mysqlTable("servers", {
@@ -53,64 +53,147 @@ export const servers = mysqlTable("servers", {
   afastamentoDocumentoSei: varchar("afastamentoDocumentoSei", { length: 180 }),
   ultimaVarredura: timestamp("ultimaVarredura"),
   cargoComissionado: varchar("cargoComissionado", { length: 80 }),
-  substitutoComissionado: varchar("substitutoComissionado", { length: 180 }),
-  portariaSubstituicao: varchar("portariaSubstituicao", { length: 180 }),
-  contrato: varchar("contrato", { length: 120 }),
-  empresa: varchar("empresa", { length: 180 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-export const interns = mysqlTable("interns", {
+export const contacts = mysqlTable("contacts", {
   id: int("id").autoincrement().primaryKey(),
-  name: text("name").notNull(),
+  serverId: int("serverId").references(() => servers.id),
+  terceirizadoId: int("terceirizadoId").references(() => terceirizados.id),
+  nomeOriginal: text("nomeOriginal").notNull(),
+  setorOriginal: varchar("setorOriginal", { length: 180 }),
+  telefoneOriginal: varchar("telefoneOriginal", { length: 64 }),
+  emailOriginal: varchar("emailOriginal", { length: 320 }),
+  sourceModule: varchar("sourceModule", { length: 120 }).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export const productionIncentives = mysqlTable("productionIncentives", {
+export const serviceRecords = mysqlTable("serviceRecords", {
   id: int("id").autoincrement().primaryKey(),
-  serverId: int("serverId"),
+  serverId: int("serverId").references(() => servers.id),
+  nomeOriginal: text("nomeOriginal").notNull(),
+  setor: varchar("setor", { length: 180 }),
+  cargo: varchar("cargo", { length: 180 }),
+  dataNascimento: date("dataNascimento"),
+  dataContratacao: date("dataContratacao"),
+  averbacaoDias: int("averbacaoDias"),
+  sourceModule: varchar("sourceModule", { length: 120 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const interns = mysqlTable("interns", {
+  id: int("id").autoincrement().primaryKey(),
+  serverId: int("serverId").references(() => servers.id),
+  matricula: varchar("matricula", { length: 32 }),
+  nomeOriginal: text("nomeOriginal").notNull(),
+  cursando: varchar("cursando", { length: 180 }),
+  setorAtuacao: varchar("setorAtuacao", { length: 180 }),
+  turno: varchar("turno", { length: 64 }),
+  responsavel: varchar("responsavel", { length: 180 }),
+  numeroProcesso: varchar("numeroProcesso", { length: 120 }),
+  bolsa: varchar("bolsa", { length: 100 }),
+  dataContratacao: date("dataContratacao"),
+  dataNascimento: date("dataNascimento"),
+  vencimento: date("vencimento"),
+  renovacao: varchar("renovacao", { length: 32 }),
+  sourceModule: varchar("sourceModule", { length: 120 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const terceirizados = mysqlTable("terceirizados", {
+  id: int("id").autoincrement().primaryKey(),
+  serverId: int("serverId").references(() => servers.id),
+  nomeOriginal: text("nomeOriginal").notNull(),
+  nomeNormalizado: varchar("nomeNormalizado", { length: 255 }).notNull(),
+  cpf: varchar("cpf", { length: 32 }).unique(),
+  cargoFuncao: varchar("cargoFuncao", { length: 180 }),
+  setor: varchar("setor", { length: 180 }),
+  localLotacao: varchar("localLotacao", { length: 180 }),
+  telefone: varchar("telefone", { length: 64 }),
+  email: varchar("email", { length: 320 }),
+  empresa: varchar("empresa", { length: 255 }).notNull(),
+  contrato: varchar("contrato", { length: 120 }).notNull(),
+  numeroContrato: varchar("numeroContrato", { length: 120 }),
+  inicioContrato: date("inicioContrato"),
+  fimContrato: date("fimContrato"),
+  situacaoContrato: varchar("situacaoContrato", { length: 64 }),
+  dataNascimento: date("dataNascimento"),
+  observacoes: text("observacoes"),
+  sourceModule: varchar("sourceModule", { length: 120 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const frequenciasTerceirizados = mysqlTable("frequenciasTerceirizados", {
+  id: int("id").autoincrement().primaryKey(),
+  terceirizadoId: int("terceirizadoId").references(() => terceirizados.id),
+  nomeOriginal: text("nomeOriginal").notNull(),
+  empresa: varchar("empresa", { length: 255 }).notNull(),
+  contrato: varchar("contrato", { length: 120 }).notNull(),
+  pagina: int("pagina"),
+  mesReferencia: varchar("mesReferencia", { length: 64 }),
+  dataEmissao: varchar("dataEmissao", { length: 64 }),
+  funcao: varchar("funcao", { length: 180 }),
+  turno: varchar("turno", { length: 64 }),
+  ocorrencias: text("ocorrencias"),
+  dias: int("dias"),
+  substituto: varchar("substituto", { length: 180 }),
+  sourceModule: varchar("sourceModule", { length: 120 }).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
 export const functionalActs = mysqlTable("functionalActs", {
   id: int("id").autoincrement().primaryKey(),
-  serverId: int("serverId"),
-  type: varchar("type", { length: 100 }),
+  serverId: int("serverId").references(() => servers.id),
+  tipo: varchar("tipo", { length: 100 }).notNull(),
+  portaria: varchar("portaria", { length: 180 }),
+  processoSei: varchar("processoSei", { length: 180 }),
+  setor: varchar("setor", { length: 180 }),
+  cargaHoraria: varchar("cargaHoraria", { length: 32 }),
+  sourceModule: varchar("sourceModule", { length: 120 }).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export const frequenciasTerceirizados = mysqlTable("frequenciasTerceirizados", {
+export const productionIncentives = mysqlTable("productionIncentives", {
   id: int("id").autoincrement().primaryKey(),
-  serverId: int("serverId"),
+  serverId: int("serverId").references(() => servers.id),
+  matricula: varchar("matricula", { length: 32 }),
+  nomeOriginal: text("nomeOriginal").notNull(),
+  numeroPortaria: varchar("numeroPortaria", { length: 180 }),
+  colegiado: varchar("colegiado", { length: 180 }),
+  dataInicio: date("dataInicio"),
+  dataTermino: date("dataTermino"),
+  diasFaltantes: varchar("diasFaltantes", { length: 64 }),
+  sourceModule: varchar("sourceModule", { length: 120 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const serverChangeHistory = mysqlTable("serverChangeHistory", {
+  id: int("id").autoincrement().primaryKey(),
+  serverId: int("serverId").references(() => servers.id),
+  matricula: varchar("matricula", { length: 32 }),
+  fieldName: varchar("fieldName", { length: 120 }).notNull(),
+  previousValue: text("previousValue"),
+  newValue: text("newValue"),
+  changedBy: varchar("changedBy", { length: 255 }).notNull(),
+  reason: varchar("reason", { length: 255 }),
+  eventType: varchar("eventType", { length: 80 }),
+  processSei: varchar("processSei", { length: 180 }),
+  publicationNumber: varchar("publicationNumber", { length: 180 }),
+  doeLink: varchar("doeLink", { length: 500 }),
+  startDate: date("startDate"),
+  endDate: date("endDate"),
+  publicationDate: date("publicationDate"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
 export const detectedPublications = mysqlTable("detectedPublications", {
   id: int("id").autoincrement().primaryKey(),
-  title: text("title"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
-
-export const importConflicts = mysqlTable("importConflicts", {
-  id: int("id").autoincrement().primaryKey(),
-  details: text("details"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
-
-export const importRuns = mysqlTable("importRuns", {
-  id: int("id").autoincrement().primaryKey(),
-  status: varchar("status", { length: 50 }),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
-
-export const contacts = mysqlTable("contacts", {
-  id: int("id").autoincrement().primaryKey(),
-  name: text("name"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
-
-export type User = typeof users.$inferSelect;
-export type InsertUser = typeof users.$inferInsert;
-export type Server = typeof servers.$inferSelect;
-export type InsertServer = typeof servers.$inferInsert;
+  serverId: int("serverId").references(() => servers.id),
+  matricula: varchar("matricula", { length: 32 }),
+  nomeOriginal: text("nomeOriginal"),
+  sourceKey: varchar("sourceKey", { length: 80 }).notNull(),
+  sourceLabel: varchar("sourceLabel", { length: 180 }).notNull(),
+  sourceUrl: varchar("sourceUrl", { length: 500 }).notNull(),
+  documentUrl:
