@@ -6,8 +6,8 @@ import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { createServerRecord, deleteServerRecord, getFunctionalSummary, listDetectedPublications, listFunctionalData, listReviewQueue, listServerChangeHistory, updateReviewConflict, updateServerRecord } from "./db";
 
-const nullableText = z.string().nullable().optional();
-const nullableInt = z.union([z.string(), z.number()]).nullable().optional().transform(value => value === "" || value === null || value === undefined ? value : Number(value));
+const nullableText = z.string().nullable().optional().transform(value => value === "" ? null : value);
+const nullableInt = z.union([z.string(), z.number()]).nullable().optional().transform(value => value === "" || value === null || value === undefined ? null : Number(value));
 const nullableChoice = (values: readonly [string, ...string[]]) => z.enum(values).nullable().optional();
 
 const nullableDate = z.string().nullable().optional().transform(value => value ? new Date(`${value}T00:00:00.000Z`) : null);
