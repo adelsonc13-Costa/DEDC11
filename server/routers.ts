@@ -7,11 +7,10 @@ import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { createServerRecord, deleteServerRecord, getFunctionalSummary, listDetectedPublications, listFunctionalData, listReviewQueue, listServerChangeHistory, updateReviewConflict, updateServerRecord } from "./db";
 
 const nullableText = z.string().nullable().optional();
-const nullableDate = z.string().nullable().optional().transform(value => value ? new Date(`${value}T00:00:00.000Z`) : value);
 const nullableInt = z.union([z.string(), z.number()]).nullable().optional().transform(value => value === "" || value === null || value === undefined ? value : Number(value));
 const nullableChoice = (values: readonly [string, ...string[]]) => z.enum(values).nullable().optional();
 
-export const appRouter = router({
+const nullableDate = z.string().nullable().optional().transform(value => value ? new Date(`${value}T00:00:00.000Z`) : null);
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
