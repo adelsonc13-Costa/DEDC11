@@ -1,11 +1,36 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
-import { useState } from "react";
+import { useAuth } from "./_core/hooks/useAuth";
+import { useEffect, useState } from "react";
+
+// Guarda de rota: só libera o conteúdo protegido (Home) depois de confirmar
+// que existe uma sessão válida (/api/auth/login ou OAuth). Sem isso, a Home
+// e todas as rotas tRPC "functional.*" ficavam acessíveis sem login.
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { loading, user } = useAuth();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      setLocation("/login");
+    }
+  }, [loading, user, setLocation]);
+
+  if (loading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-100 text-sm text-slate-500">
+        Verificando acesso…
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
 
 // Tela de Login Real criada para conectar com as suas senhas do Render
 function Login() {
@@ -88,7 +113,7 @@ function Login() {
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
+      <Route path={"/"}>{() => <RequireAuth><Home /></RequireAuth>}</Route>
       {/* ROTA DE LOGIN FINALMENTE INSERIDA! */}
       <Route path={"/login"} component={Login} /> 
       <Route path={"/404"} component={NotFound} />
