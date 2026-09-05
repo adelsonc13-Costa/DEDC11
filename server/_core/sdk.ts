@@ -211,9 +211,18 @@ class SDKServer {
       });
       const { openId, appId, name } = payload as Record<string, unknown>;
 
+      // appId só existe no login via OAuth do Manus (ENV.appId / VITE_APP_ID).
+      // O login local usuário/senha (server/_core/auth.ts) sempre assina a
+      // sessão com appId "" porque essa integração não está configurada aqui
+      // — exigir que fosse uma string não vazia fazia toda sessão criada pelo
+      // login local se autorrejeitar nesta mesma verificação: o login
+      // respondia sucesso, mas a checagem seguinte de autenticação sempre via
+      // "sessão inválida" e devolvia para a tela de login. appId nunca é
+      // usado para autorização depois (apenas openId), então basta que seja
+      // uma string (vazia ou não) em vez de obrigatoriamente não vazia.
       if (
         !isNonEmptyString(openId) ||
-        !isNonEmptyString(appId) ||
+        typeof appId !== "string" ||
         !isNonEmptyString(name)
       ) {
         console.warn("[Auth] Session payload missing required fields");
