@@ -11,7 +11,8 @@ const nullableInt = z.union([z.string(), z.number()]).nullable().optional().tran
 const nullableChoice = (values: readonly [string, ...string[]]) => z.enum(values).nullable().optional();
 
 const nullableDate = z.string().nullable().optional().transform(value => value ? new Date(`${value}T00:00:00.000Z`) : null);
-  system: systemRouter,
+  export const appRouter = router({
+    system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
