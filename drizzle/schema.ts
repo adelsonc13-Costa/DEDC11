@@ -199,6 +199,7 @@ export const serverChangeHistory = mysqlTable("serverChangeHistory", {
 
 export const detectedPublications = mysqlTable("detectedPublications", {
   id: int("id").autoincrement().primaryKey(),
+  runId: int("runId").references(() => importRuns.id),
   serverId: int("serverId").references(() => servers.id),
   matricula: varchar("matricula", { length: 32 }),
   nomeOriginal: text("nomeOriginal"),
@@ -207,10 +208,26 @@ export const detectedPublications = mysqlTable("detectedPublications", {
   sourceUrl: varchar("sourceUrl", { length: 500 }).notNull(),
   documentUrl: varchar("documentUrl", { length: 500 }),
   eventType: varchar("eventType", { length: 80 }).notNull(),
+  actNumber: varchar("actNumber", { length: 180 }),
+  processoSei: varchar("processoSei", { length: 180 }),
   publicationDate: date("publicationDate"),
   description: text("description"),
   documentText: text("documentText"),
   scanMode: mysqlEnum("scanMode", ["historical", "daily"]).notNull(),
+  // Classificação do motor de conferência da Lala (comando-mestre-iala.md, seção 5).
+  // "nao_pesquisado" nunca deveria chegar por este endpoint (Lala só envia o que
+  // efetivamente pesquisou), mas fica como default seguro caso o campo venha ausente.
+  intelligenceStatus: mysqlEnum("intelligenceStatus", [
+    "confirmado",
+    "pendente",
+    "divergencia",
+    "nao_pesquisado",
+  ]).default("nao_pesquisado").notNull(),
+  // Preenchidos apenas quando intelligenceStatus = "divergencia": valor atual no
+  // Cadastro Mestre lado a lado com o valor encontrado na fonte oficial. O RH decide,
+  // Lala nunca sobrescreve `servers` diretamente.
+  masterValue: text("masterValue"),
+  foundValue: text("foundValue"),
   fingerprint: varchar("fingerprint", { length: 64 }).notNull().unique(),
   reviewStatus: mysqlEnum("reviewStatus", [
     "pending",
@@ -285,11 +302,16 @@ export const detectedPublicationsRelations = relations(
       fields: [detectedPublications.serverId],
       references: [servers.id],
     }),
+    run: one(importRuns, {
+      fields: [detectedPublications.runId],
+      references: [importRuns.id],
+    }),
   }),
 );
 
 export const importRunsRelations = relations(importRuns, ({ many }) => ({
   conflicts: many(importConflicts),
+  detectedPublications: many(detectedPublications),
 }));
 
 export type User = typeof users.$inferSelect;

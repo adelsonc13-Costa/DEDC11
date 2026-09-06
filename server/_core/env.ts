@@ -9,4 +9,5 @@ export const ENV = {
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
   appUsername: process.env.APP_USERNAME ?? "",
   appPassword: process.env.APP_PASSWORD ?? "",
+  lalaApiKey: process.env.LALA_API_KEY ?? "",
 };

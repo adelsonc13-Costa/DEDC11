@@ -268,6 +268,12 @@ export async function ensureTablesExist() {
       { table: "servers", column: "cnhCategoria", definition: "VARCHAR(16)" },
       { table: "servers", column: "cnhVencimento", definition: "DATE" },
       { table: "servers", column: "cnhCursoVan", definition: "VARCHAR(8)" },
+      { table: "detectedPublications", column: "runId", definition: "INT" },
+      { table: "detectedPublications", column: "actNumber", definition: "VARCHAR(180)" },
+      { table: "detectedPublications", column: "processoSei", definition: "VARCHAR(180)" },
+      { table: "detectedPublications", column: "intelligenceStatus", definition: "ENUM('confirmado','pendente','divergencia','nao_pesquisado') NOT NULL DEFAULT 'nao_pesquisado'" },
+      { table: "detectedPublications", column: "masterValue", definition: "TEXT" },
+      { table: "detectedPublications", column: "foundValue", definition: "TEXT" },
     ];
 
     for (const { table, column, definition } of columnsToAdd) {
