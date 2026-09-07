@@ -46,6 +46,16 @@ const FONTES = {
 // da fonte por extenso, já que não há uma sigla fixa pra mapear.
 const FONTE_KEYS = ["dool-egba", "spo-uneb", "pgdp-uneb", "outra"] as const;
 
+// Campos do Cadastro Mestre (`servers`) que um achado pode pedir para
+// atualizar quando for Aceito (decisão de Del, 07/09/2026: enquadramento,
+// progressão e promoção devem refletir no cadastro, não só ficar no
+// histórico). Lista fechada por segurança — nunca um nome de coluna livre
+// vindo da Lala. grau/referencia/tecnicoNivel são INT no banco; applyValue
+// chega como string e é convertido com validação (ver updateDetectedPublicationStatus
+// em server/db.ts) — se não for um número válido para esses três, a
+// aplicação falha alto (erro), nunca silenciosamente.
+const APPLY_FIELDS = ["grau", "referencia", "tecnicoNivel", "categoria", "cargo", "setor"] as const;
+
 const nullableTrimmed = z
   .string()
   .trim()
@@ -88,6 +98,15 @@ const AchadoSchema = z
     // obrigatórios quando intelligenceStatus === "divergencia" (validado abaixo)
     masterValue: z.string().trim().max(2000).optional(),
     foundValue: z.string().trim().max(2000).optional(),
+    // opcionais, sempre juntos (validado abaixo): quando presentes, ao
+    // Aceitar este achado o sistema grava applyValue no campo applyField do
+    // servidor no Cadastro Mestre, além de registrar no histórico. Exemplo:
+    // um achado de "enquadramento" pode trazer applyField "grau" com
+    // applyValue "3" (grau/referencia/tecnicoNivel usam número — não
+    // algarismo romano — porque são a mesma coluna INT que o Cadastro
+    // Mestre já usa).
+    applyField: z.enum(APPLY_FIELDS).optional(),
+    applyValue: nullableTrimmed,
   })
   .refine(
     achado => achado.intelligenceStatus !== "divergencia" || (achado.masterValue && achado.foundValue),
@@ -104,7 +123,18 @@ const AchadoSchema = z
   .refine(achado => Boolean(achado.sourceUrl) || Boolean(achado.documentUrl) || Boolean(achado.sourceLabel), {
     message: "informe sourceUrl, documentUrl, ou sourceLabel descrevendo onde o documento está arquivado",
     path: ["sourceUrl"],
-  });
+  })
+  .refine(achado => Boolean(achado.applyField) === Boolean(achado.applyValue), {
+    message: "applyField e applyValue devem ser enviados juntos, ou nenhum dos dois",
+    path: ["applyField"],
+  })
+  .refine(
+    achado =>
+      !achado.applyField ||
+      !["grau", "referencia", "tecnicoNivel"].includes(achado.applyField) ||
+      /^\d+$/.test(achado.applyValue ?? ""),
+    { message: "applyValue deve ser um número inteiro (sem algarismo romano) quando applyField é grau, referencia ou tecnicoNivel", path: ["applyValue"] },
+  );
 
 const PacoteSchema = z.object({
   // "individual" = consulta individualizada (Modo 1 do comando mestre da
@@ -228,6 +258,8 @@ export async function lalaIngestHandler(req: Request, res: Response) {
           intelligenceStatus: achado.intelligenceStatus,
           masterValue: achado.masterValue ?? null,
           foundValue: achado.foundValue ?? null,
+          applyField: achado.applyField ?? null,
+          applyValue: achado.applyValue ?? null,
           fingerprint,
           reviewStatus: "pending" as const,
         })),

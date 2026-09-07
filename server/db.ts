@@ -157,6 +157,55 @@ export async function updateDetectedPublicationStatus(id: number, reviewStatus: 
       });
     }
   }
+  // Aplicação genérica de campo (decisão de Del, 07/09/2026): quando a Lala
+  // envia applyField/applyValue num achado (tipicamente enquadramento,
+  // progressão ou promoção — grau, referência, cargo), Aceitar o achado já
+  // atualiza esse campo no Cadastro Mestre, além do histórico. Lista de
+  // campos permitidos é fixa (ver APPLY_FIELDS em server/lalaIngest.ts);
+  // aqui o switch garante que só essas colunas específicas são graváveis,
+  // nunca um nome vindo direto do payload.
+  if (reviewStatus === "approved" && existing.applyField && existing.applyValue != null && existing.serverId) {
+    const server = (await db
+      .select({ grau: servers.grau, referencia: servers.referencia, tecnicoNivel: servers.tecnicoNivel, categoria: servers.categoria, cargo: servers.cargo, setor: servers.setor })
+      .from(servers)
+      .where(eq(servers.id, existing.serverId))
+      .limit(1))[0];
+    if (server) {
+      const field = existing.applyField;
+      const raw = existing.applyValue;
+      const serverId = existing.serverId;
+      let previousValue: string | null = null;
+      let apply: (() => Promise<void>) | null = null;
+      if (field === "grau" || field === "referencia" || field === "tecnicoNivel") {
+        const parsed = Number.parseInt(raw, 10);
+        if (Number.isFinite(parsed)) {
+          previousValue = server[field] == null ? null : String(server[field]);
+          if (field === "grau") apply = async () => { await db.update(servers).set({ grau: parsed }).where(eq(servers.id, serverId)); };
+          else if (field === "referencia") apply = async () => { await db.update(servers).set({ referencia: parsed }).where(eq(servers.id, serverId)); };
+          else apply = async () => { await db.update(servers).set({ tecnicoNivel: parsed }).where(eq(servers.id, serverId)); };
+        } else {
+          console.error(`[UpdateDetectedPublicationStatus] applyValue inválido para ${field} no achado #${id}: "${raw}"`);
+        }
+      } else if (field === "categoria" || field === "cargo" || field === "setor") {
+        previousValue = server[field] ?? null;
+        if (field === "categoria") apply = async () => { await db.update(servers).set({ categoria: raw }).where(eq(servers.id, serverId)); };
+        else if (field === "cargo") apply = async () => { await db.update(servers).set({ cargo: raw }).where(eq(servers.id, serverId)); };
+        else apply = async () => { await db.update(servers).set({ setor: raw }).where(eq(servers.id, serverId)); };
+      }
+      if (apply && previousValue !== raw) {
+        await apply();
+        await db.insert(serverChangeHistory).values({
+          serverId,
+          matricula: existing.matricula,
+          fieldName: field,
+          previousValue,
+          newValue: raw,
+          changedBy,
+          reason: `Aplicado automaticamente via achado #${id} (${existing.eventType} · ${existing.sourceLabel}) ao aceitar.`,
+        });
+      }
+    }
+  }
   return { ...existing, reviewStatus };
 }
 

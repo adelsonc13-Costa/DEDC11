@@ -233,6 +233,15 @@ export const detectedPublications = mysqlTable("detectedPublications", {
   // Lala nunca sobrescreve `servers` diretamente.
   masterValue: text("masterValue"),
   foundValue: text("foundValue"),
+  // Preenchidos opcionalmente pela Lala quando o achado deve, ao ser Aceito,
+  // atualizar um campo específico do Cadastro Mestre (ex.: enquadramento,
+  // progressão e promoção mudam grau/referência/cargo). `applyField` é
+  // validado contra uma lista fixa de colunas permitidas (ver
+  // APPLY_FIELDS em server/lalaIngest.ts) — nunca um nome de coluna livre —
+  // e a aplicação em si só acontece no clique humano em "Aceitar"
+  // (updateDetectedPublicationStatus em server/db.ts), nunca na ingestão.
+  applyField: varchar("applyField", { length: 40 }),
+  applyValue: varchar("applyValue", { length: 200 }),
   fingerprint: varchar("fingerprint", { length: 64 }).notNull().unique(),
   reviewStatus: mysqlEnum("reviewStatus", [
     "pending",

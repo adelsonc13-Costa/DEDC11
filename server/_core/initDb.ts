@@ -274,6 +274,8 @@ export async function ensureTablesExist() {
       { table: "detectedPublications", column: "intelligenceStatus", definition: "ENUM('confirmado','pendente','divergencia','nao_pesquisado') NOT NULL DEFAULT 'nao_pesquisado'" },
       { table: "detectedPublications", column: "masterValue", definition: "TEXT" },
       { table: "detectedPublications", column: "foundValue", definition: "TEXT" },
+      { table: "detectedPublications", column: "applyField", definition: "VARCHAR(40)" },
+      { table: "detectedPublications", column: "applyValue", definition: "VARCHAR(200)" },
     ];
 
     for (const { table, column, definition } of columnsToAdd) {
