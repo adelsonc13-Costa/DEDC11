@@ -114,6 +114,32 @@ export async function listDetectedPublications(limit = 100) {
   return db.select().from(detectedPublications).orderBy(desc(detectedPublications.publicationDate), desc(detectedPublications.createdAt)).limit(Math.min(Math.max(limit, 1), 500));
 }
 
+// Nunca apaga a linha (mantém a trilha de auditoria, mesmo padrão do resto do
+// sistema): só muda reviewStatus. "discarded" é para achados que não devem
+// virar uma pendência real (dado de teste, duplicata não pega pelo
+// fingerprint, achado sem relevância) — some da fila de revisão sem some do
+// histórico. "approved" fica registrado para quando existir uma etapa futura
+// de aplicar a mudança ao Cadastro Mestre a partir daqui.
+export async function updateDetectedPublicationStatus(id: number, reviewStatus: "approved" | "discarded", changedBy = "modo-demo") {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const existing = (await db.select().from(detectedPublications).where(eq(detectedPublications.id, id)).limit(1))[0];
+  if (!existing) throw new Error("Achado não encontrado");
+  await db.update(detectedPublications).set({ reviewStatus }).where(eq(detectedPublications.id, id));
+  if (existing.serverId) {
+    await db.insert(serverChangeHistory).values({
+      serverId: existing.serverId,
+      matricula: existing.matricula,
+      fieldName: "__detectedPublication__",
+      previousValue: existing.reviewStatus,
+      newValue: reviewStatus,
+      changedBy,
+      reason: `Revisão de achado #${id} (${existing.sourceLabel}) na fila Fontes e Auditoria`,
+    });
+  }
+  return { ...existing, reviewStatus };
+}
+
 export async function listReviewQueue(status?: "pending" | "resolved" | "ignored") {
   const db = await getDb();
   if (!db) return [];
