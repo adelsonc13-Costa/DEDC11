@@ -19,10 +19,10 @@
 # reusar e ate versionar, sem expor a credencial.
 #
 # IMPORTANTE: este arquivo usa so caracteres ASCII de proposito (sem
-# acento, sem travessao). Se digitar acentos ou travessao dentro das
+# acento, sem travessao). Se digitar acento ou travessao dentro das
 # strings ao editar no Notepad, o Windows PowerShell pode quebrar o
-# script ao salvar/reabrir. Use "nao", "voce", "-" em vez de "não",
-# "você", "—" dentro dos valores editados abaixo.
+# script ao salvar/reabrir. Escreva sempre sem acento (nao, voce,
+# descricao) e use hifen simples "-" em vez de travessao.
 # ============================================================
 
 # ---------- CONFIGURACAO (normalmente nao precisa mexer) ----------
