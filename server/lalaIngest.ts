@@ -37,6 +37,12 @@ const FONTES = {
   "pgdp-uneb": "PGDP · Pró-Reitoria de Gestão e Desenvolvimento de Pessoas",
 } as const;
 
+// "outra" cobre documentos fora das três fontes públicas do comando mestre da
+// Lala (ex.: certidões internas, mapas de tempo de contribuição emitidos pela
+// própria UNEB) — nesse caso o achado precisa trazer `sourceLabel` com o nome
+// da fonte por extenso, já que não há uma sigla fixa pra mapear.
+const FONTE_KEYS = ["dool-egba", "spo-uneb", "pgdp-uneb", "outra"] as const;
+
 const nullableTrimmed = z
   .string()
   .trim()
@@ -44,14 +50,28 @@ const nullableTrimmed = z
   .max(500)
   .optional();
 
+// Lala às vezes envia string vazia ("") em vez de omitir o campo quando não
+// há URL pública (ex.: certidão interna). z.string().url().optional() só
+// aceita `undefined` — "" ainda cairia no .url() e falharia. Este preprocess
+// normaliza "" (e strings só de espaço) para `undefined` antes da validação.
+const optionalUrl = z.preprocess(
+  value => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z.string().url().max(500).optional(),
+);
+
 const AchadoSchema = z
   .object({
     matricula: z.string().trim().min(1).max(32).optional(),
     nomeOriginal: z.string().trim().min(1).max(255).optional(),
     categoria: z.enum(CATEGORIAS),
-    fonte: z.enum(["dool-egba", "spo-uneb", "pgdp-uneb"]),
-    sourceUrl: z.string().url().max(500),
-    documentUrl: z.string().url().max(500).optional(),
+    fonte: z.enum(FONTE_KEYS),
+    // opcional: documentos sem publicação web (certidões internas, processos
+    // em papel digitalizado) não têm URL pública — nesse caso omita o campo
+    // (ou envie "", que é normalizado para ausente).
+    sourceUrl: optionalUrl,
+    // obrigatório quando fonte === "outra" (validado abaixo)
+    sourceLabel: nullableTrimmed,
+    documentUrl: optionalUrl,
     actNumber: nullableTrimmed,
     processoSei: nullableTrimmed,
     // aceita "AAAA-MM-DD" ou "DD/MM/AAAA"
@@ -73,12 +93,23 @@ const AchadoSchema = z
   .refine(achado => Boolean(achado.matricula) || Boolean(achado.nomeOriginal), {
     message: "informe matricula e/ou nomeOriginal para permitir o cruzamento com o Cadastro Mestre",
     path: ["matricula"],
+  })
+  .refine(achado => achado.fonte !== "outra" || Boolean(achado.sourceLabel), {
+    message: "sourceLabel é obrigatório quando fonte é 'outra'",
+    path: ["sourceLabel"],
+  })
+  .refine(achado => Boolean(achado.sourceUrl) || Boolean(achado.documentUrl) || Boolean(achado.sourceLabel), {
+    message: "informe sourceUrl, documentUrl, ou sourceLabel descrevendo onde o documento está arquivado",
+    path: ["sourceUrl"],
   });
 
 const PacoteSchema = z.object({
-  scanMode: z.enum(["historical", "daily"]),
+  // "individual" = consulta individualizada (Modo 1 do comando mestre da
+  // Lala, dossiê sob demanda de uma pessoa específica); "historical" = carga
+  // histórica em lote; "daily" = rotina automática das 09:30.
+  scanMode: z.enum(["historical", "daily", "individual"]),
   // rótulo curto e legível do lote, ex.: "Iala · varredura diária 06/09/2026"
-  // ou "Iala · carga histórica DOOL matrícula 000123"
+  // ou "Iala · dossiê individual matrícula 000123"
   batchLabel: z.string().trim().min(1).max(180),
   achados: z.array(AchadoSchema).min(1).max(500),
 });
@@ -102,11 +133,17 @@ function parsePublicationDate(value?: string): Date | null {
 }
 
 function buildFingerprint(achado: z.infer<typeof AchadoSchema>): string {
+  const documentRef = achado.documentUrl ?? achado.sourceUrl;
   const key = [
     achado.fonte,
     achado.categoria,
     achado.matricula ?? "",
-    achado.documentUrl ?? achado.sourceUrl,
+    // Quando há URL, ela já identifica o documento com segurança. Sem URL
+    // (ex.: certidão interna via fonte "outra"), cai no sourceLabel — mas
+    // duas certidões diferentes da mesma fonte/matrícula sem URL colidiriam,
+    // então soma-se um hash curto da descrição só nesse caso, pra não
+    // deduplicar achados distintos.
+    documentRef ?? [achado.sourceLabel ?? "", createHash("sha256").update(achado.description).digest("hex").slice(0, 16)].join(":"),
     achado.actNumber ?? "",
     achado.publicationDate ?? "",
   ].join("|");
@@ -162,7 +199,12 @@ export async function lalaIngestHandler(req: Request, res: Response) {
     const [run] = await db
       .insert(importRuns)
       .values({
-        source: scanMode === "historical" ? "lala-carga-historica" : "lala-varredura-diaria",
+        source:
+          scanMode === "historical"
+            ? "lala-carga-historica"
+            : scanMode === "individual"
+              ? "lala-consulta-individual"
+              : "lala-varredura-diaria",
         version,
         status: "committed",
         insertedCount: toInsert.length,
@@ -181,8 +223,8 @@ export async function lalaIngestHandler(req: Request, res: Response) {
           matricula: achado.matricula ?? matched?.matricula ?? null,
           nomeOriginal: achado.nomeOriginal ?? matched?.nomeOriginal ?? null,
           sourceKey: achado.fonte,
-          sourceLabel: FONTES[achado.fonte],
-          sourceUrl: achado.sourceUrl,
+          sourceLabel: achado.fonte === "outra" ? (achado.sourceLabel ?? "Fonte não classificada") : FONTES[achado.fonte],
+          sourceUrl: achado.sourceUrl ?? null,
           documentUrl: achado.documentUrl ?? null,
           eventType: achado.categoria,
           actNumber: achado.actNumber ?? null,
