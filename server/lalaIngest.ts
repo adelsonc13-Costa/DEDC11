@@ -29,6 +29,9 @@ const CATEGORIAS = [
   "progressao",
   "transferencia",
   "cessao",
+  "averbacao",
+  "enquadramento",
+  "aposentadoria",
 ] as const;
 
 const FONTES = {
