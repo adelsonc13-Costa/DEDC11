@@ -63,12 +63,32 @@ const FONTE_KEYS = ["dool-egba", "spo-uneb", "pgdp-uneb", "outra"] as const;
 // aplicação falha alto (erro), nunca silenciosamente.
 const APPLY_FIELDS = ["grau", "referencia", "tecnicoNivel", "categoria", "cargo", "setor"] as const;
 
-const nullableTrimmed = z
-  .string()
-  .trim()
-  .min(1)
-  .max(500)
-  .optional();
+// Cada schema abaixo tem o .max() alinhado ao tamanho real da coluna no
+// banco (ver drizzle/schema.ts) — não a um limite genérico. Antes disso
+// todos os campos abaixo usavam um único `nullableTrimmed` com .max(500),
+// que deixava passar payloads que o Zod aceitava mas o MySQL rejeitava com
+// ER_DATA_TOO_LONG (aconteceu em produção com um sourceLabel de ~195
+// caracteres contra a coluna varchar(180) — todo o lote daquele runId foi
+// perdido porque a requisição inteira retornou 500). Manter os limites
+// batendo garante que um payload fora do tamanho falhe aqui, na validação,
+// com mensagem clara — não lá na query SQL.
+const nullableTrimmed = (max: number) =>
+  z
+    .string()
+    .trim()
+    .min(1)
+    .max(max)
+    .optional();
+
+// detectedPublications.sourceLabel/actNumber/processoSei: varchar(180)
+const sourceLabelSchema = nullableTrimmed(180);
+const actNumberSchema = nullableTrimmed(180);
+const processoSeiSchema = nullableTrimmed(180);
+// categoriaLabel vira detectedPublications.eventType (varchar(80)) quando
+// categoria === "outra" — ver mapeamento de insert mais abaixo.
+const categoriaLabelSchema = nullableTrimmed(80);
+// detectedPublications.applyValue: varchar(200)
+const applyValueSchema = nullableTrimmed(200);
 
 // Lala às vezes envia string vazia ("") em vez de omitir o campo quando não
 // há URL pública (ex.: certidão interna). z.string().url().optional() só
@@ -87,17 +107,17 @@ const AchadoSchema = z
     // obrigatório quando categoria === "outra" (validado abaixo) — rótulo
     // curto e específico do ato (ex.: "Designação de fiscal de contrato"),
     // vira o eventType gravado no lugar do genérico "outra".
-    categoriaLabel: nullableTrimmed,
+    categoriaLabel: categoriaLabelSchema,
     fonte: z.enum(FONTE_KEYS),
     // opcional: documentos sem publicação web (certidões internas, processos
     // em papel digitalizado) não têm URL pública — nesse caso omita o campo
     // (ou envie "", que é normalizado para ausente).
     sourceUrl: optionalUrl,
     // obrigatório quando fonte === "outra" (validado abaixo)
-    sourceLabel: nullableTrimmed,
+    sourceLabel: sourceLabelSchema,
     documentUrl: optionalUrl,
-    actNumber: nullableTrimmed,
-    processoSei: nullableTrimmed,
+    actNumber: actNumberSchema,
+    processoSei: processoSeiSchema,
     // aceita "AAAA-MM-DD" ou "DD/MM/AAAA"
     publicationDate: z
       .string()
@@ -117,7 +137,7 @@ const AchadoSchema = z
     // algarismo romano — porque são a mesma coluna INT que o Cadastro
     // Mestre já usa).
     applyField: z.enum(APPLY_FIELDS).optional(),
-    applyValue: nullableTrimmed,
+    applyValue: applyValueSchema,
   })
   .refine(
     achado => achado.intelligenceStatus !== "divergencia" || (achado.masterValue && achado.foundValue),

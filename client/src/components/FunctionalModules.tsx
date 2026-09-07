@@ -4,7 +4,18 @@ type Data = {
   servers: any[]; interns: any[]; productionIncentives: any[]; serviceRecords: any[]; contacts: any[];
   terceirizados: any[]; frequenciasTerceirizados: any[]; reviewQueue?: any[]; detectedPublications?: any[];
 };
-const fmt = (value: string | Date | null | undefined) => value ? new Date(value).toLocaleDateString("pt-BR") : "—";
+// Mesmo cuidado de fuso horário do formatMasterDate em Home.tsx: datas DATE
+// (sem hora) do banco são UTC, e toLocaleDateString() converte pro fuso do
+// navegador — no Brasil (UTC-3) isso desloca a data exibida em um dia.
+// Ler os componentes em UTC evita o problema.
+const fmt = (value: string | Date | null | undefined) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  return `${day}/${month}/${date.getUTCFullYear()}`;
+};
 const table = "w-full min-w-[760px] text-left text-sm";
 const head = "bg-[#102641] text-[10px] uppercase tracking-[0.14em] text-white";
 
