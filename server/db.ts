@@ -137,6 +137,26 @@ export async function updateDetectedPublicationStatus(id: number, reviewStatus: 
       reason: `Revisão de achado #${id} (${existing.sourceLabel}) na fila Fontes e Auditoria`,
     });
   }
+  // Aposentadoria é evento terminal (decisão de Del, 07/09/2026): ao ser
+  // Aceito — e só ao ser Aceito, nunca automaticamente na ingestão — a
+  // situação do servidor na Base Mestre muda para "Inativo". É a única
+  // categoria com esse efeito colateral hoje; as demais continuam só
+  // ficando registradas, sem tocar em `servers`.
+  if (reviewStatus === "approved" && existing.eventType === "aposentadoria" && existing.serverId) {
+    const server = (await db.select({ status: servers.status }).from(servers).where(eq(servers.id, existing.serverId)).limit(1))[0];
+    if (server && server.status !== "Inativo") {
+      await db.update(servers).set({ status: "Inativo" }).where(eq(servers.id, existing.serverId));
+      await db.insert(serverChangeHistory).values({
+        serverId: existing.serverId,
+        matricula: existing.matricula,
+        fieldName: "status",
+        previousValue: server.status,
+        newValue: "Inativo",
+        changedBy,
+        reason: `Aposentadoria confirmada via achado #${id}${existing.processoSei ? ` (processo SEI ${existing.processoSei})` : ""} — situação atualizada automaticamente ao aceitar.`,
+      });
+    }
+  }
   return { ...existing, reviewStatus };
 }
 
