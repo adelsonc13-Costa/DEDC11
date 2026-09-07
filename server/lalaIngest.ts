@@ -32,6 +32,13 @@ const CATEGORIAS = [
   "averbacao",
   "enquadramento",
   "aposentadoria",
+  "designacao",
+  // Categoria genérica (decisão de Del, 07/09/2026), espelhando o mesmo
+  // padrão de "outra" em FONTE_KEYS: cobre atos administrativos que não se
+  // encaixam nas categorias fixas acima, sem precisar esperar uma alteração
+  // de schema. Exige `categoriaLabel` (validado abaixo) — sem isso o achado
+  // ficaria com um rótulo genérico demais pra filtrar ou decidir algo.
+  "outra",
 ] as const;
 
 const FONTES = {
@@ -77,6 +84,10 @@ const AchadoSchema = z
     matricula: z.string().trim().min(1).max(32).optional(),
     nomeOriginal: z.string().trim().min(1).max(255).optional(),
     categoria: z.enum(CATEGORIAS),
+    // obrigatório quando categoria === "outra" (validado abaixo) — rótulo
+    // curto e específico do ato (ex.: "Designação de fiscal de contrato"),
+    // vira o eventType gravado no lugar do genérico "outra".
+    categoriaLabel: nullableTrimmed,
     fonte: z.enum(FONTE_KEYS),
     // opcional: documentos sem publicação web (certidões internas, processos
     // em papel digitalizado) não têm URL pública — nesse caso omita o campo
@@ -120,6 +131,10 @@ const AchadoSchema = z
     message: "sourceLabel é obrigatório quando fonte é 'outra'",
     path: ["sourceLabel"],
   })
+  .refine(achado => achado.categoria !== "outra" || Boolean(achado.categoriaLabel), {
+    message: "categoriaLabel é obrigatório quando categoria é 'outra'",
+    path: ["categoriaLabel"],
+  })
   .refine(achado => Boolean(achado.sourceUrl) || Boolean(achado.documentUrl) || Boolean(achado.sourceLabel), {
     message: "informe sourceUrl, documentUrl, ou sourceLabel descrevendo onde o documento está arquivado",
     path: ["sourceUrl"],
@@ -158,7 +173,10 @@ function buildFingerprint(achado: z.infer<typeof AchadoSchema>): string {
   const documentRef = achado.documentUrl ?? achado.sourceUrl;
   const key = [
     achado.fonte,
-    achado.categoria,
+    // Quando categoria é "outra", usa o rótulo específico em vez do genérico
+    // "outra" — senão dois achados administrativos diferentes (mesma
+    // matrícula/fonte/data) poderiam colidir na deduplicação.
+    achado.categoria === "outra" ? (achado.categoriaLabel ?? "outra") : achado.categoria,
     achado.matricula ?? "",
     // Quando há URL, ela já identifica o documento com segurança. Sem URL
     // (ex.: certidão interna via fonte "outra"), cai no sourceLabel — mas
@@ -248,7 +266,7 @@ export async function lalaIngestHandler(req: Request, res: Response) {
           sourceLabel: achado.fonte === "outra" ? (achado.sourceLabel ?? "Fonte não classificada") : FONTES[achado.fonte],
           sourceUrl: achado.sourceUrl ?? null,
           documentUrl: achado.documentUrl ?? null,
-          eventType: achado.categoria,
+          eventType: achado.categoria === "outra" ? (achado.categoriaLabel ?? "Categoria não classificada") : achado.categoria,
           actNumber: achado.actNumber ?? null,
           processoSei: achado.processoSei ?? null,
           publicationDate: parsePublicationDate(achado.publicationDate),
