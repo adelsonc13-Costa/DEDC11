@@ -13,6 +13,7 @@ import { serveStatic, setupVite } from "./vite";
 import { institutionalSyncHandler } from "../scheduled";
 import { lalaIngestHandler } from "../lalaIngest";
 import { monitoredServersHandler } from "../monitoredServers";
+import { dailyDoolScanHandler } from "../dailyDoolScan";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -53,6 +54,7 @@ async function startServer() {  await ensureTablesExist();
   app.post("/api/scheduled/syncInstitutionalSources", institutionalSyncHandler);
   app.post("/api/ingest/lala", lalaIngestHandler);
   app.get("/api/scheduled/monitoredServers", monitoredServersHandler);
+  app.post("/api/scheduled/dailyDoolScan", dailyDoolScanHandler);
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);

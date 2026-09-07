@@ -5,6 +5,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { createServerRecord, deleteServerRecord, getFunctionalSummary, listDetectedPublications, listFunctionalData, listReviewQueue, listServerChangeHistory, updateDetectedPublicationStatus, updateReviewConflict, updateServerRecord } from "./db";
+import { searchAndRegisterDoolFindings } from "./doolSearch";
 
 const nullableText = z.string().nullable().optional().transform(value => value === "" ? null : value);
 const nullableInt = z.union([z.string(), z.number()]).nullable().optional().transform(value => value === "" || value === null || value === undefined ? null : Number(value));
@@ -127,6 +128,7 @@ const nullableDate = z.string().nullable().optional().transform(value => value ?
     reviewQueue: protectedProcedure.input(z.object({ status: z.enum(["pending", "resolved", "ignored"]).optional() }).default({})).query(({ input }) => listReviewQueue(input.status)),
     detectedPublications: protectedProcedure.input(z.object({ limit: z.number().int().min(1).max(500).default(100) })).query(({ input }) => listDetectedPublications(input.limit)),
     updateDetectedPublicationStatus: protectedProcedure.input(z.object({ id: z.number().int().positive(), reviewStatus: z.enum(["approved", "discarded"]), changedBy: z.string().optional() })).mutation(({ input }) => updateDetectedPublicationStatus(input.id, input.reviewStatus, input.changedBy ?? "modo-demo")),
+    searchDool: protectedProcedure.input(z.object({ matricula: z.string().min(1).max(32), nomeOriginal: z.string().optional() })).mutation(({ input }) => searchAndRegisterDoolFindings(input.matricula, input.nomeOriginal)),
     reviewConflict: protectedProcedure.input(z.object({ id: z.number().int().positive(), status: z.enum(["resolved", "ignored"]), changedBy: z.string().optional() })).mutation(({ input }) => updateReviewConflict(input.id, input.status, input.changedBy ?? "modo-demo")),
   }),
 });
