@@ -205,7 +205,10 @@ export const detectedPublications = mysqlTable("detectedPublications", {
   nomeOriginal: text("nomeOriginal"),
   sourceKey: varchar("sourceKey", { length: 80 }).notNull(),
   sourceLabel: varchar("sourceLabel", { length: 180 }).notNull(),
-  sourceUrl: varchar("sourceUrl", { length: 500 }).notNull(),
+  // Nullable: documentos sem publicação web (certidões internas, fonte
+  // "outra") não têm URL pública — nesse caso o achado se identifica por
+  // sourceLabel/documentText em vez de sourceUrl.
+  sourceUrl: varchar("sourceUrl", { length: 500 }),
   documentUrl: varchar("documentUrl", { length: 500 }),
   eventType: varchar("eventType", { length: 80 }).notNull(),
   actNumber: varchar("actNumber", { length: 180 }),
@@ -213,7 +216,9 @@ export const detectedPublications = mysqlTable("detectedPublications", {
   publicationDate: date("publicationDate"),
   description: text("description"),
   documentText: text("documentText"),
-  scanMode: mysqlEnum("scanMode", ["historical", "daily"]).notNull(),
+  // "individual" = consulta individualizada (Modo 1 do comando mestre da
+  // Lala, dossiê sob demanda de uma pessoa específica).
+  scanMode: mysqlEnum("scanMode", ["historical", "daily", "individual"]).notNull(),
   // Classificação do motor de conferência da Lala (comando-mestre-iala.md, seção 5).
   // "nao_pesquisado" nunca deveria chegar por este endpoint (Lala só envia o que
   // efetivamente pesquisou), mas fica como default seguro caso o campo venha ausente.

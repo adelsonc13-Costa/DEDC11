@@ -287,6 +287,40 @@ export async function ensureTablesExist() {
         console.log(`[InitDB] Added column ${column} to ${table}.`);
       }
     }
+    // Altera colunas existentes (tipo/nullability) sem apagar dados —
+    // mesmo espírito idempotente do bloco acima, mas via MODIFY COLUMN.
+    const columnsToModify: Array<{
+      table: string;
+      column: string;
+      definition: string;
+      // só executa o ALTER se a coluna atual NÃO bater com este check
+      isAlreadyApplied: (info: { columnType: string; isNullable: string }) => boolean;
+    }> = [
+      {
+        table: "detectedPublications",
+        column: "scanMode",
+        definition: "ENUM('historical','daily','individual') NOT NULL",
+        isAlreadyApplied: info => info.columnType.includes("'individual'"),
+      },
+      {
+        table: "detectedPublications",
+        column: "sourceUrl",
+        definition: "VARCHAR(500) NULL",
+        isAlreadyApplied: info => info.isNullable === "YES",
+      },
+    ];
+
+    for (const { table, column, definition, isAlreadyApplied } of columnsToModify) {
+      const [rows] = await connection.query(
+        `SELECT COLUMN_TYPE as columnType, IS_NULLABLE as isNullable FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+        [table, column]
+      );
+      const info = (rows as any)[0];
+      if (info && !isAlreadyApplied(info)) {
+        await connection.query(`ALTER TABLE ${table} MODIFY COLUMN ${column} ${definition}`);
+        console.log(`[InitDB] Modified column ${column} on ${table}.`);
+      }
+    }
     console.log("[InitDB] All tables verified/created successfully.");
   } catch (error) {
     console.error("[InitDB] Failed to create tables:", error);
