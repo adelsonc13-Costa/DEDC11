@@ -1,10 +1,10 @@
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash } from "node:crypto";
 import type { Request, Response } from "express";
 import { z } from "zod";
 import { eq, inArray } from "drizzle-orm";
 import { detectedPublications, importRuns, servers } from "../drizzle/schema";
 import { getDb } from "./db";
-import { ENV } from "./_core/env";
+import { isAuthorizedForLala } from "./_core/lalaAuth";
 
 /**
  * Ponte de ingestão da agente Lala (Módulo de Inteligência Funcional, ver
@@ -114,17 +114,6 @@ const PacoteSchema = z.object({
   achados: z.array(AchadoSchema).min(1).max(500),
 });
 
-function isAuthorized(req: Request): boolean {
-  if (!ENV.lalaApiKey) return false; // nunca aceita token "vazio"
-  const header = req.headers.authorization ?? "";
-  const [scheme, token] = header.split(" ");
-  if (scheme !== "Bearer" || !token) return false;
-  const expected = Buffer.from(ENV.lalaApiKey);
-  const received = Buffer.from(token);
-  if (expected.length !== received.length) return false;
-  return timingSafeEqual(expected, received);
-}
-
 function parsePublicationDate(value?: string): Date | null {
   if (!value) return null;
   const br = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
@@ -153,7 +142,7 @@ function buildFingerprint(achado: z.infer<typeof AchadoSchema>): string {
 export async function lalaIngestHandler(req: Request, res: Response) {
   const receivedAt = new Date().toISOString();
 
-  if (!isAuthorized(req)) {
+  if (!isAuthorizedForLala(req)) {
     return res.status(401).json({ error: "unauthorized", timestamp: receivedAt });
   }
 
