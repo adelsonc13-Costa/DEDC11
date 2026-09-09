@@ -331,6 +331,40 @@ export async function deleteServerRecord(id: number, changedBy = "modo-demo") {
   return { success: true } as const;
 }
 
+export async function createRedaCadastro(input: typeof redaCadastros.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.insert(redaCadastros).values(input);
+  return (await db.select().from(redaCadastros).where(eq(redaCadastros.serverId, input.serverId)).limit(1))[0];
+}
+
+export async function updateRedaCadastro(id: number, patch: Partial<typeof redaCadastros.$inferInsert>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const before = (await db.select().from(redaCadastros).where(eq(redaCadastros.id, id)).limit(1))[0];
+  if (!before) throw new Error("Cadastro REDA not found");
+  await db.update(redaCadastros).set({ ...patch, updatedAt: new Date() }).where(eq(redaCadastros.id, id));
+  return (await db.select().from(redaCadastros).where(eq(redaCadastros.id, id)).limit(1))[0];
+}
+
+export async function createRedaEfetivoCoberto(input: typeof redaEfetivosCobertos.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.insert(redaEfetivosCobertos).values(input);
+  const rows = await db.select().from(redaEfetivosCobertos).where(eq(redaEfetivosCobertos.redaCadastroId, input.redaCadastroId)).orderBy(desc(redaEfetivosCobertos.id)).limit(1);
+  return rows[0];
+}
+
+export async function encerrarRedaEfetivoCoberto(id: number, dataFim: string | Date) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const before = (await db.select().from(redaEfetivosCobertos).where(eq(redaEfetivosCobertos.id, id)).limit(1))[0];
+  if (!before) throw new Error("Vínculo REDA not found");
+  const dataFimValue = dataFim instanceof Date ? dataFim : new Date(`${dataFim}T00:00:00.000Z`);
+  await db.update(redaEfetivosCobertos).set({ dataFim: dataFimValue }).where(eq(redaEfetivosCobertos.id, id));
+  return (await db.select().from(redaEfetivosCobertos).where(eq(redaEfetivosCobertos.id, id)).limit(1))[0];
+}
+
 export async function listServerChangeHistory(serverId?: number) {
   const db = await getDb();
   if (!db) return [];

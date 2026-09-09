@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { servers } from "../drizzle/schema";
+import { servers, redaCadastros, redaEfetivosCobertos } from "../drizzle/schema";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { createServerRecord, deleteServerRecord, getFunctionalSummary, listDetectedPublications, listFunctionalData, listReviewQueue, listServerChangeHistory, updateDetectedPublicationStatus, updateReviewConflict, updateServerRecord } from "./db";
+import { createServerRecord, createRedaCadastro, createRedaEfetivoCoberto, deleteServerRecord, encerrarRedaEfetivoCoberto, getFunctionalSummary, listDetectedPublications, listFunctionalData, listReviewQueue, listServerChangeHistory, updateDetectedPublicationStatus, updateRedaCadastro, updateReviewConflict, updateServerRecord } from "./db";
 import { searchAndRegisterDoolFindings } from "./doolSearch";
 
 const nullableText = z.string().nullable().optional().transform(value => value === "" ? null : value);
@@ -124,6 +124,62 @@ const nullableDate = z.string().nullable().optional().transform(value => value ?
       changedBy: z.string().optional(),
     })).mutation(({ input }) => { const { changedBy, ...serverInput } = input; return createServerRecord(serverInput as unknown as typeof servers.$inferInsert, changedBy ?? "modo-demo"); }),
     deleteServer: protectedProcedure.input(z.object({ id: z.number().int().positive(), changedBy: z.string().optional() })).mutation(({ input }) => deleteServerRecord(input.id, input.changedBy ?? "modo-demo")),
+    createRedaCadastro: protectedProcedure.input(z.object({
+      serverId: z.number().int().positive(),
+      tipoReda: z.enum(["Docente", "Técnico"]),
+      baseLegal: nullableText,
+      numeroEditalConcurso: nullableText,
+      dataHomologacaoConcurso: nullableDate,
+      vigenciaConcursoFim: nullableDate,
+      posicaoCadastroReserva: nullableText,
+      areaComponenteCurricular: nullableText,
+      portariaConvocacaoInicial: nullableText,
+      portariaConvocacaoData: nullableDate,
+      cargaHoraria: nullableText,
+      vagaClasseNivel: nullableText,
+      dataInicioContrato: nullableDate,
+      dataFimContratoPrevisto: nullableDate,
+      tetoPermanenciaData: nullableDate,
+      status: z.enum(["Ativo", "Encerrado"]).optional(),
+      justificativaCargaPrevista: nullableText,
+    })).mutation(({ input }) => createRedaCadastro(input as unknown as typeof redaCadastros.$inferInsert)),
+    updateRedaCadastro: protectedProcedure.input(z.object({
+      id: z.number().int().positive(),
+      tipoReda: z.enum(["Docente", "Técnico"]).optional(),
+      baseLegal: nullableText,
+      numeroEditalConcurso: nullableText,
+      dataHomologacaoConcurso: nullableDate,
+      vigenciaConcursoFim: nullableDate,
+      posicaoCadastroReserva: nullableText,
+      areaComponenteCurricular: nullableText,
+      portariaConvocacaoInicial: nullableText,
+      portariaConvocacaoData: nullableDate,
+      cargaHoraria: nullableText,
+      vagaClasseNivel: nullableText,
+      dataInicioContrato: nullableDate,
+      dataFimContratoPrevisto: nullableDate,
+      tetoPermanenciaData: nullableDate,
+      status: z.enum(["Ativo", "Encerrado"]).optional(),
+      justificativaCargaPrevista: nullableText,
+    })).mutation(({ input }) => { const { id, ...patch } = input; return updateRedaCadastro(id, patch as unknown as Partial<typeof redaCadastros.$inferInsert>); }),
+    createRedaEfetivoCoberto: protectedProcedure.input(z.object({
+      redaCadastroId: z.number().int().positive(),
+      efetivoServerId: z.number().int().positive(),
+      motivoAfastamento: z.enum([
+        "Exoneração ou demissão",
+        "Falecimento",
+        "Aposentadoria",
+        "Afastamento ou licença de concessão obrigatória",
+        "Licença para capacitação",
+      ]).nullable().optional(),
+      portariaAfastamentoEfetivo: nullableText,
+      numeroProcesso: nullableText,
+      dataInicio: nullableDate,
+    })).mutation(({ input }) => createRedaEfetivoCoberto(input as unknown as typeof redaEfetivosCobertos.$inferInsert)),
+    encerrarRedaEfetivoCoberto: protectedProcedure.input(z.object({
+      id: z.number().int().positive(),
+      dataFim: z.string(),
+    })).mutation(({ input }) => encerrarRedaEfetivoCoberto(input.id, input.dataFim)),
     history: protectedProcedure.input(z.object({ serverId: z.number().int().positive().optional() }).default({})).query(({ input }) => listServerChangeHistory(input.serverId)),
     reviewQueue: protectedProcedure.input(z.object({ status: z.enum(["pending", "resolved", "ignored"]).optional() }).default({})).query(({ input }) => listReviewQueue(input.status)),
     detectedPublications: protectedProcedure.input(z.object({ limit: z.number().int().min(1).max(500).default(100) })).query(({ input }) => listDetectedPublications(input.limit)),
