@@ -78,11 +78,14 @@ const trpcClient = trpc.createClient({
 createRoot(document.getElementById("root")!).render(
   createElement(
     trpc.Provider,
-    { client: trpcClient, queryClient: queryClient },
-    createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      createElement(App)
-      )
-    )
-  );
+    {
+      client: trpcClient,
+      queryClient: queryClient,
+      children: createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        createElement(App)
+      ),
+    }
+  )
+);

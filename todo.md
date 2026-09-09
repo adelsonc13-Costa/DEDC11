@@ -408,3 +408,46 @@
 - [x] Ask the user what they would like to do next with this independent copy.
 
 > Source-project tasks above are historical context only and will not be continued unless explicitly requested.
+
+## Cache, rótulos e feedback da Lala (08/09/2026)
+
+- [x] Confirmar HEAD do repositório em e681635 (fuso horário, grau/referência/nível técnico editáveis, linha do tempo de achados, rótulos duplicados, validação de schema).
+- [x] Corrigir cache do `index.html` em `server/_core/vite.ts` (serveStatic sem cache pro HTML, immutable pros assets com hash).
+- [x] Trocar os 6 rótulos "demonstrativo" em `client/src/pages/Home.tsx` por textos reais (Dossiê do servidor, Edição de cadastro, Sessão autenticada, etc.).
+- [x] Rodar `npx tsc --noEmit`, commit `8d97b10`, push e confirmar deploy live no Render.
+- [ ] Preencher manualmente o campo Categoria no dossiê da Idnéia (matrícula 74003213) — ação de interface, não de código.
+
+## Cadastro Docente/REDA e Técnico REDA
+
+- [x] Modelar Docente Efetivo (classe, nível, tempo de serviço, remuneração, averbações, licenças, situação/afastamento).
+- [x] Modelar Docente REDA como registro próprio (relação N:M com efetivos, vaga substituída, teto de 72 meses, vida funcional própria, restrição de progressão Art. 50).
+- [x] Modelar Técnico REDA como caso separado (concurso público, cadastro de reserva, sem vínculo N:M a pessoa específica).
+- [x] Levantar o formulário real do RH (Microsoft Forms) e mapear inconsistências (Pleno pedindo Nível indevidamente; só Titular pede matrícula/email).
+- [x] Implementar nova entidade/tabela para REDA (docente e técnico) em `drizzle/schema.ts`: `redaCadastros` (1:1 com servers, tipoReda Docente/Técnico), `redaEfetivosCobertos` (N:M REDA↔efetivo, com motivoAfastamento enum Art. 47/33), `redaProrrogacoes` (histórico de prorrogação). Campo `tetoPermanenciaData` já reservado pro alerta de 72 meses (cálculo automático ainda não implementado).
+  - [x] Migration `0016_complete_epoch.sql` gerada (`npx drizzle-kit generate`) e aplicada no banco de produção (TiDB Cloud) em 09/09/2026 — as 3 tabelas novas (`redaCadastros`, `redaEfetivosCobertos`, `redaProrrogacoes`) e as FKs foram confirmadas via `SHOW TABLES LIKE 'reda%'`. Aplicação feita via script Node avulso (`mysql2`) rodando as instruções do `.sql` uma a uma, contornando um bug de saída silenciosa do `drizzle-kit migrate` no PowerShell/Windows.
+- [x] Expandir `APPLY_FIELDS` em `server/lalaIngest.ts` com `docenteClasse`/`docenteNivel` (nomes reais das colunas — não "classe"/"nivel" como o modelo inicial sugeria).
+- [x] Excluir a categoria `ferias` da validação de achados para docentes — achado `ferias` pra servidor com `categoria === "Docente"` agora é rejeitado no `lalaIngestHandler` (contado em `rejectedFeriasDocente`, devolvido na resposta como `rejeitadosFeriasDocente`), não inserido silenciosamente.
+- [ ] Adicionar campo de referência rápida (somente leitura) no dossiê do efetivo apontando pro substituto atual — schema já suporta via relação `cobertoPorReda`, falta expor isso em `server/storage.ts`/`routers.ts` e no dossiê em `Home.tsx`.
+- [ ] Implementar alerta de teto de permanência (72 meses) para Docente REDA — coluna `tetoPermanenciaData` já existe no schema, falta o cálculo automático e o alerta na interface.
+- [ ] Construir a tela/formulário de cadastro REDA em si (hoje só existe o schema; não há UI pra criar/editar `redaCadastros`).
+
+## Views derivadas da planilha do RH
+
+- [x] Adicionar filtro por Carga Horária na tela de Servidores — agora as opções são derivadas dos valores reais de `cargaHoraria` no cadastro (não mais uma lista fixa de 40h/30h), cobrindo 20h/44h/D.E./o que existir na base.
+- [x] Calcular tempo de casa (anos/meses/dias, dinâmico) e ordenar por antiguidade na aba "Tempo de Serviço" (`FunctionalModules.tsx`, `active === "alertas"`).
+- [x] Criar view de auditoria de matrícula ausente, filtrando por categoria — filtro de Categoria, botão "Sem matrícula" com contador, badge na coluna Matrícula na tela de Servidores. Bônus: corrigida key duplicada nas linhas da tabela (usava `server.registration`, que colide quando vazio).
+- [ ] Criar agrupamento por Colegiado/Departamento na lista de Servidores (hoje é tabela plana).
+
+## Motor de cálculo — licença-prêmio e aposentadoria
+
+- [ ] Gerar janelas de quinquênio a partir da Data de Admissão (só para admitidos até 2015) e cruzar com achados `licenca-premio`/`pecunia`, classificando gozado/convertido/em aberto.
+- [ ] Calcular data estimada de tempo mínimo de contribuição (admissão + averbações) por servidor.
+- [ ] Calcular data de idade mínima (nascimento + idade exigida pela EC 26/2020) por servidor.
+- [ ] Expor no dossiê a data de aptidão estimada (a mais tardia entre tempo mínimo e idade mínima).
+- [ ] Confirmar com a Lala o corte exato de 2015 (licença-prêmio) e a abrangência da EC 26/2020 por categoria antes de fixar como regra definitiva — manter parâmetros configuráveis até lá.
+
+## Redesign visual completo (item 8 — decisão confirmada, entra na fila)
+
+- [ ] Usar `mockup-dossie-idneia.html` como referência de estilo pra repaginar o site inteiro, não só o dossiê.
+- [ ] Levantar todas as telas/módulos atuais e mapear o que muda visualmente em cada uma, mantendo a diretriz "Arquivo Vivo" (azul-marinho #102641, dourado queimado #D8B56D, Libre Baskerville + Source Sans 3).
+- [ ] Definir se o redesign é incremental (tela por tela) ou um corte único — decisão a alinhar com Del antes de começar.

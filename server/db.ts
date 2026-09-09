@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, like, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { randomUUID } from "node:crypto";
-import { contacts, detectedPublications, frequenciasTerceirizados, functionalActs, importConflicts, importRuns, InsertUser, interns, productionIncentives, serverChangeHistory, servers, serviceRecords, terceirizados, users } from "../drizzle/schema";
+import { contacts, detectedPublications, frequenciasTerceirizados, functionalActs, importConflicts, importRuns, InsertUser, interns, productionIncentives, redaCadastros, redaEfetivosCobertos, serverChangeHistory, servers, serviceRecords, terceirizados, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -92,9 +92,9 @@ export async function getUserByOpenId(openId: string) {
 
 export async function listFunctionalData(search = "") {
   const db = await getDb();
-  if (!db) return { servers: [], functionalActs: [], interns: [], contacts: [], serviceRecords: [], productionIncentives: [], terceirizados: [], frequenciasTerceirizados: [], importRuns: [] };
+  if (!db) return { servers: [], functionalActs: [], interns: [], contacts: [], serviceRecords: [], productionIncentives: [], terceirizados: [], frequenciasTerceirizados: [], importRuns: [], redaCadastros: [], redaEfetivosCobertos: [] };
   const filter = search.trim() ? or(like(servers.nomeNormalizado, `%${search.trim().toUpperCase()}%`), like(servers.matricula, `%${search.trim()}%`)) : undefined;
-  const [serverRows, actRows, internRows, contactRows, serviceRows, incentiveRows, contractorRows, frequencyRows, runRows] = await Promise.all([
+  const [serverRows, actRows, internRows, contactRows, serviceRows, incentiveRows, contractorRows, frequencyRows, runRows, redaCadastroRows, redaEfetivosCobertosRows] = await Promise.all([
     db.select().from(servers).where(filter).orderBy(asc(servers.nomeNormalizado)),
     db.select().from(functionalActs).orderBy(desc(functionalActs.createdAt)),
     db.select().from(interns).orderBy(asc(interns.nomeOriginal)),
@@ -104,8 +104,10 @@ export async function listFunctionalData(search = "") {
     db.select().from(terceirizados).orderBy(asc(terceirizados.nomeNormalizado)),
     db.select().from(frequenciasTerceirizados).orderBy(desc(frequenciasTerceirizados.createdAt)),
     db.select().from(importRuns).orderBy(desc(importRuns.createdAt)).limit(5),
+    db.select().from(redaCadastros),
+    db.select().from(redaEfetivosCobertos),
   ]);
-  return { servers: serverRows, functionalActs: actRows, interns: internRows, contacts: contactRows, serviceRecords: serviceRows, productionIncentives: incentiveRows, terceirizados: contractorRows, frequenciasTerceirizados: frequencyRows, importRuns: runRows };
+  return { servers: serverRows, functionalActs: actRows, interns: internRows, contacts: contactRows, serviceRecords: serviceRows, productionIncentives: incentiveRows, terceirizados: contractorRows, frequenciasTerceirizados: frequencyRows, importRuns: runRows, redaCadastros: redaCadastroRows, redaEfetivosCobertos: redaEfetivosCobertosRows };
 }
 
 export async function listDetectedPublications(limit = 100) {

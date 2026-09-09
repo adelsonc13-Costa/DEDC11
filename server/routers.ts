@@ -122,7 +122,7 @@ const nullableDate = z.string().nullable().optional().transform(value => value ?
       contrato: nullableText,
       empresa: nullableText,
       changedBy: z.string().optional(),
-    })).mutation(({ input }) => { const { changedBy, ...serverInput } = input; return createServerRecord(serverInput as typeof servers.$inferInsert, changedBy ?? "modo-demo"); }),
+    })).mutation(({ input }) => { const { changedBy, ...serverInput } = input; return createServerRecord(serverInput as unknown as typeof servers.$inferInsert, changedBy ?? "modo-demo"); }),
     deleteServer: protectedProcedure.input(z.object({ id: z.number().int().positive(), changedBy: z.string().optional() })).mutation(({ input }) => deleteServerRecord(input.id, input.changedBy ?? "modo-demo")),
     history: protectedProcedure.input(z.object({ serverId: z.number().int().positive().optional() }).default({})).query(({ input }) => listServerChangeHistory(input.serverId)),
     reviewQueue: protectedProcedure.input(z.object({ status: z.enum(["pending", "resolved", "ignored"]).optional() }).default({})).query(({ input }) => listReviewQueue(input.status)),

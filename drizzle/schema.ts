@@ -66,6 +66,84 @@ export const servers = mysqlTable("servers", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+// REDA (Regime Especial de Direito Administrativo) — docente substituto e
+// técnico convocado por concurso, ver claude/modelo-cadastro-docente-reda.md.
+// A pessoa REDA já é uma linha própria em `servers` (categoria "Docente" ou
+// "Técnico") — esta tabela guarda só os atributos específicos do vínculo
+// REDA que não fazem sentido pra um efetivo (base legal da contratação,
+// vigência do concurso/edital, teto de permanência etc.), 1:1 com o
+// servidor. `tipoReda` decide quais colunas se aplicam: Docente usa
+// baseLegal/numeroEdital/areaComponenteCurricular/tetoPermanenciaData
+// (Art. 50 da Lei 8.352/2002: 72 meses, 36+36); Técnico usa
+// numeroEditalConcurso/dataHomologacaoConcurso/vigenciaConcursoFim/
+// posicaoCadastroReserva — não tem teto de permanência nem vínculo N:M
+// obrigatório a um efetivo específico (seção 2.1 do modelo).
+export const redaCadastros = mysqlTable("redaCadastros", {
+  id: int("id").autoincrement().primaryKey(),
+  serverId: int("serverId").references(() => servers.id).notNull().unique(),
+  tipoReda: mysqlEnum("tipoReda", ["Docente", "Técnico"]).notNull(),
+  baseLegal: varchar("baseLegal", { length: 120 }),
+  numeroEditalConcurso: varchar("numeroEditalConcurso", { length: 120 }),
+  dataHomologacaoConcurso: date("dataHomologacaoConcurso"),
+  vigenciaConcursoFim: date("vigenciaConcursoFim"),
+  posicaoCadastroReserva: varchar("posicaoCadastroReserva", { length: 64 }),
+  areaComponenteCurricular: varchar("areaComponenteCurricular", { length: 180 }),
+  portariaConvocacaoInicial: varchar("portariaConvocacaoInicial", { length: 180 }),
+  portariaConvocacaoData: date("portariaConvocacaoData"),
+  cargaHoraria: varchar("cargaHoraria", { length: 32 }),
+  vagaClasseNivel: varchar("vagaClasseNivel", { length: 120 }),
+  dataInicioContrato: date("dataInicioContrato"),
+  dataFimContratoPrevisto: date("dataFimContratoPrevisto"),
+  // Só se aplica a Docente REDA (Art. 50, Lei 8.352/2002): 72 meses = 36 do
+  // contrato inicial + até 36 de renovação. Data-limite pra alerta de teto
+  // de permanência; calculada/registrada manualmente por ora — o motor
+  // automático fica pra quando o alerta for implementado na interface.
+  tetoPermanenciaData: date("tetoPermanenciaData"),
+  status: mysqlEnum("status", ["Ativo", "Encerrado"]).default("Ativo").notNull(),
+  justificativaCargaPrevista: text("justificativaCargaPrevista"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// Relação N:M entre um REDA (docente) e o(s) efetivo(s) que ele cobre — um
+// REDA pode cobrir mais de um efetivo ao mesmo tempo (caso real: Gilsimar
+// Cerqueira de Oliveira cobrindo 2 efetivos simultaneamente). Só se aplica a
+// tipoReda = "Docente"; Técnico REDA (concurso, cadastro de reserva) não tem
+// vínculo obrigatório a uma vaga específica.
+export const redaEfetivosCobertos = mysqlTable("redaEfetivosCobertos", {
+  id: int("id").autoincrement().primaryKey(),
+  redaCadastroId: int("redaCadastroId").references(() => redaCadastros.id).notNull(),
+  efetivoServerId: int("efetivoServerId").references(() => servers.id).notNull(),
+  // Base legal: Art. 47, caput, c/c Art. 33, incisos I e II, da Lei 8.352/2002.
+  motivoAfastamento: mysqlEnum("motivoAfastamento", [
+    "Exoneração ou demissão",
+    "Falecimento",
+    "Aposentadoria",
+    "Afastamento ou licença de concessão obrigatória",
+    "Licença para capacitação",
+  ]),
+  portariaAfastamentoEfetivo: varchar("portariaAfastamentoEfetivo", { length: 180 }),
+  numeroProcesso: varchar("numeroProcesso", { length: 120 }),
+  dataInicio: date("dataInicio"),
+  // null = vínculo ainda vigente (efetivo ainda afastado / REDA ainda cobrindo).
+  dataFim: date("dataFim"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// Histórico de prorrogações do contrato REDA (checklist de renovação:
+// Atestado de Frequência, Declaração de Desempenho, Portaria(s) de
+// nomeação do(s) efetivo(s) substituído(s) — statusDocumentos guarda um
+// resumo textual desse checklist até a interface ganhar campos próprios).
+export const redaProrrogacoes = mysqlTable("redaProrrogacoes", {
+  id: int("id").autoincrement().primaryKey(),
+  redaCadastroId: int("redaCadastroId").references(() => redaCadastros.id).notNull(),
+  numeroPortaria: varchar("numeroPortaria", { length: 180 }),
+  dataInicio: date("dataInicio"),
+  dataFim: date("dataFim"),
+  statusDocumentos: varchar("statusDocumentos", { length: 255 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export const contacts = mysqlTable("contacts", {
   id: int("id").autoincrement().primaryKey(),
   serverId: int("serverId").references(() => servers.id),
@@ -286,13 +364,48 @@ export const importConflicts = mysqlTable("importConflicts", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export const serversRelations = relations(servers, ({ many }) => ({
+export const serversRelations = relations(servers, ({ many, one }) => ({
   contacts: many(contacts),
   serviceRecords: many(serviceRecords),
   interns: many(interns),
   functionalActs: many(functionalActs),
   productionIncentives: many(productionIncentives),
   terceirizados: many(terceirizados),
+  // Presente só quando este servidor é um REDA (categoria Docente/Técnico
+  // com vínculo REDA) — o servidor efetivo não tem redaCadastro próprio.
+  redaCadastro: one(redaCadastros, {
+    fields: [servers.id],
+    references: [redaCadastros.serverId],
+  }),
+  // Presente quando este servidor é um efetivo coberto por um ou mais REDA.
+  cobertoPorReda: many(redaEfetivosCobertos),
+}));
+
+export const redaCadastrosRelations = relations(redaCadastros, ({ one, many }) => ({
+  server: one(servers, {
+    fields: [redaCadastros.serverId],
+    references: [servers.id],
+  }),
+  efetivosCobertos: many(redaEfetivosCobertos),
+  prorrogacoes: many(redaProrrogacoes),
+}));
+
+export const redaEfetivosCobertosRelations = relations(redaEfetivosCobertos, ({ one }) => ({
+  redaCadastro: one(redaCadastros, {
+    fields: [redaEfetivosCobertos.redaCadastroId],
+    references: [redaCadastros.id],
+  }),
+  efetivo: one(servers, {
+    fields: [redaEfetivosCobertos.efetivoServerId],
+    references: [servers.id],
+  }),
+}));
+
+export const redaProrrogacoesRelations = relations(redaProrrogacoes, ({ one }) => ({
+  redaCadastro: one(redaCadastros, {
+    fields: [redaProrrogacoes.redaCadastroId],
+    references: [redaCadastros.id],
+  }),
 }));
 
 export const terceirizadosRelations = relations(terceirizados, ({ many }) => ({
@@ -332,3 +445,9 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type Server = typeof servers.$inferSelect;
 export type InsertServer = typeof servers.$inferInsert;
+export type RedaCadastro = typeof redaCadastros.$inferSelect;
+export type InsertRedaCadastro = typeof redaCadastros.$inferInsert;
+export type RedaEfetivoCoberto = typeof redaEfetivosCobertos.$inferSelect;
+export type InsertRedaEfetivoCoberto = typeof redaEfetivosCobertos.$inferInsert;
+export type RedaProrrogacao = typeof redaProrrogacoes.$inferSelect;
+export type InsertRedaProrrogacao = typeof redaProrrogacoes.$inferInsert;

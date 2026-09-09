@@ -61,7 +61,12 @@ const FONTE_KEYS = ["dool-egba", "spo-uneb", "pgdp-uneb", "outra"] as const;
 // chega como string e é convertido com validação (ver updateDetectedPublicationStatus
 // em server/db.ts) — se não for um número válido para esses três, a
 // aplicação falha alto (erro), nunca silenciosamente.
-const APPLY_FIELDS = ["grau", "referencia", "tecnicoNivel", "categoria", "cargo", "setor"] as const;
+//
+// docenteClasse/docenteNivel adicionados em 09/09/2026 (claude/modelo-cadastro-docente-reda.md,
+// seção 4): mesma automação de enquadramento/progressão que já existe para
+// técnico/analista (grau/referencia/tecnicoNivel), agora também pra docente.
+// Nomes batem com as colunas reais de drizzle/schema.ts — não "classe"/"nivel".
+const APPLY_FIELDS = ["grau", "referencia", "tecnicoNivel", "docenteClasse", "docenteNivel", "categoria", "cargo", "setor"] as const;
 
 // Cada schema abaixo tem o .max() alinhado ao tamanho real da coluna no
 // banco (ver drizzle/schema.ts) — não a um limite genérico. Antes disso
@@ -232,7 +237,7 @@ export async function lalaIngestHandler(req: Request, res: Response) {
     // Cruza cada achado com o Cadastro Mestre (só leitura — nunca grava em `servers`).
     const matriculas = Array.from(new Set(achados.map(a => a.matricula).filter((v): v is string => Boolean(v))));
     const matchedServers = matriculas.length
-      ? await db.select({ id: servers.id, matricula: servers.matricula, nomeOriginal: servers.nomeOriginal }).from(servers).where(inArray(servers.matricula, matriculas))
+      ? await db.select({ id: servers.id, matricula: servers.matricula, nomeOriginal: servers.nomeOriginal, categoria: servers.categoria }).from(servers).where(inArray(servers.matricula, matriculas))
       : [];
     const serverByMatricula = new Map(matchedServers.map(server => [server.matricula, server]));
 
@@ -251,8 +256,18 @@ export async function lalaIngestHandler(req: Request, res: Response) {
       : [];
     const existingSet = new Set(existing.map(row => row.fingerprint));
 
-    const toInsert = candidates.filter(candidate => !existingSet.has(candidate.fingerprint));
-    const duplicated = candidates.length - toInsert.length;
+    // Achado de categoria "ferias" pra um servidor cuja categoria é "Docente"
+    // não é um achado válido — férias de docente é recesso coletivo
+    // institucional (calendário acadêmico), não um evento individual por
+    // matrícula (claude/modelo-cadastro-docente-reda.md, seção 1). Rejeitado
+    // aqui, não silenciosamente ignorado: entra na contagem de rejeitados
+    // devolvida na resposta, igual a duplicados/sem correspondência.
+    const isFeriasParaDocente = (candidate: (typeof candidates)[number]) =>
+      candidate.achado.categoria === "ferias" && candidate.matched?.categoria === "Docente";
+
+    const toInsert = candidates.filter(candidate => !existingSet.has(candidate.fingerprint) && !isFeriasParaDocente(candidate));
+    const duplicated = candidates.filter(candidate => existingSet.has(candidate.fingerprint)).length;
+    const rejectedFeriasDocente = candidates.filter(candidate => !existingSet.has(candidate.fingerprint) && isFeriasParaDocente(candidate)).length;
     const unmatchedServers = candidates.filter(candidate => candidate.achado.matricula && !candidate.matched).length;
 
     const version = createHash("sha256").update(fingerprints.join("|")).digest("hex");
@@ -270,7 +285,7 @@ export async function lalaIngestHandler(req: Request, res: Response) {
         insertedCount: toInsert.length,
         updatedCount: 0,
         pendingCount: toInsert.length,
-        notes: JSON.stringify({ batchLabel, receivedAt, totalRecebidos: achados.length, duplicated, unmatchedServers }),
+        notes: JSON.stringify({ batchLabel, receivedAt, totalRecebidos: achados.length, duplicated, unmatchedServers, rejectedFeriasDocente }),
       })
       .$returningId();
     const runId = run?.id ?? null;
@@ -312,6 +327,7 @@ export async function lalaIngestHandler(req: Request, res: Response) {
       recebidos: achados.length,
       inseridos: toInsert.length,
       duplicados: duplicated,
+      rejeitadosFeriasDocente: rejectedFeriasDocente,
       semCorrespondenciaNoCadastroMestre: unmatchedServers,
       timestamp: new Date().toISOString(),
     });
