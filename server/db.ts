@@ -107,7 +107,8 @@ export async function listFunctionalData(search = "") {
     db.select().from(redaCadastros),
     db.select().from(redaEfetivosCobertos),
   ]);
-  return { servers: serverRows, functionalActs: actRows, interns: internRows, contacts: contactRows, serviceRecords: serviceRows, productionIncentives: incentiveRows, terceirizados: contractorRows, frequenciasTerceirizados: frequencyRows, importRuns: runRows, redaCadastros: redaCadastroRows, redaEfetivosCobertos: redaEfetivosCobertosRows };
+  const dedupedServiceRows = Object.values(serviceRows.reduce<Record<string, typeof serviceRows[number]>>((acc, row) => { const key = row.serverId != null ? `s${row.serverId}` : `r${row.id}`; if (!acc[key] || row.id > acc[key].id) acc[key] = row; return acc; }, {}));
+  return { servers: serverRows, functionalActs: actRows, interns: internRows, contacts: contactRows, serviceRecords: dedupedServiceRows, productionIncentives: incentiveRows, terceirizados: contractorRows, frequenciasTerceirizados: frequencyRows, importRuns: runRows, redaCadastros: redaCadastroRows, redaEfetivosCobertos: redaEfetivosCobertosRows };
 }
 
 export async function listDetectedPublications(limit = 100) {
