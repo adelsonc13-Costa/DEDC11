@@ -303,6 +303,18 @@ export async function updateServerRecord(id: number, patch: Partial<typeof serve
   });
 }
 
+export async function updateTerceirizadoRecord(id: number, patch: Partial<typeof terceirizados.$inferInsert>, _changedBy = "modo-demo") {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  return db.transaction(async tx => {
+    const before = (await tx.select().from(terceirizados).where(eq(terceirizados.id, id)).limit(1))[0];
+    if (!before) throw new Error("Terceirizado not found");
+    await tx.update(terceirizados).set({ ...patch, updatedAt: new Date() }).where(eq(terceirizados.id, id));
+    const after = (await tx.select().from(terceirizados).where(eq(terceirizados.id, id)).limit(1))[0];
+    return after;
+  });
+}
+
 export async function createServerRecord(input: typeof servers.$inferInsert, changedBy = "modo-demo") {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");

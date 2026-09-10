@@ -4,7 +4,8 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { createServerRecord, createRedaCadastro, createRedaEfetivoCoberto, deleteServerRecord, encerrarRedaEfetivoCoberto, getFunctionalSummary, listDetectedPublications, listFunctionalData, listReviewQueue, listServerChangeHistory, updateDetectedPublicationStatus, updateRedaCadastro, updateReviewConflict, updateServerRecord } from "./db";
+import { terceirizados } from "../drizzle/schema";
+import { createServerRecord, createRedaCadastro, createRedaEfetivoCoberto, deleteServerRecord, encerrarRedaEfetivoCoberto, getFunctionalSummary, listDetectedPublications, listFunctionalData, listReviewQueue, listServerChangeHistory, updateDetectedPublicationStatus, updateRedaCadastro, updateReviewConflict, updateServerRecord, updateTerceirizadoRecord } from "./db";
 import { searchAndRegisterDoolFindings } from "./doolSearch";
 
 const nullableText = z.string().nullable().optional().transform(value => value === "" ? null : value);
@@ -81,6 +82,15 @@ const nullableDate = z.string().nullable().optional().transform(value => value ?
     })).mutation(({ input }) => {
       const { id, changedBy, ...patch } = input;
       return updateServerRecord(id, patch as Partial<typeof servers.$inferInsert>, changedBy ?? "modo-demo");
+    }),
+    updateTerceirizado: protectedProcedure.input(z.object({
+      id: z.number().int().positive(),
+      sexo: nullableChoice(["Masculino", "Feminino"]),
+      dataInicioContribuicaoInss: nullableDate,
+      changedBy: z.string().optional(),
+    })).mutation(({ input }) => {
+      const { id, changedBy, ...patch } = input;
+      return updateTerceirizadoRecord(id, patch as Partial<typeof terceirizados.$inferInsert>, changedBy ?? "modo-demo");
     }),
     createServer: protectedProcedure.input(z.object({
       matricula: z.string().min(1).max(32),

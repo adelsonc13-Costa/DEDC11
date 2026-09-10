@@ -208,6 +208,8 @@ export const terceirizados = mysqlTable("terceirizados", {
   fimContrato: date("fimContrato"),
   situacaoContrato: varchar("situacaoContrato", { length: 64 }),
   dataNascimento: date("dataNascimento"),
+  sexo: mysqlEnum("sexo", ["Masculino", "Feminino"]),
+  dataInicioContribuicaoInss: date("dataInicioContribuicaoInss"),
   observacoes: text("observacoes"),
   sourceModule: varchar("sourceModule", { length: 120 }).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
