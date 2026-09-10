@@ -1,0 +1,2 @@
+ALTER TABLE `servers` ADD `sexo` enum('Masculino','Feminino');--> statement-breakpoint
+ALTER TABLE `servers` ADD `regimeAposentadoria` enum('Regra permanente','Transição por pontos','Transição por pedágio');

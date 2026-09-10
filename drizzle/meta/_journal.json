@@ -120,6 +120,13 @@
       "when": 1788966750398,
       "tag": "0016_complete_epoch",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "5",
+      "when": 1789049617398,
+      "tag": "0017_rare_red_skull",
+      "breakpoints": true
     }
   ]
 }

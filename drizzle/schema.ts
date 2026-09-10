@@ -62,6 +62,8 @@ export const servers = mysqlTable("servers", {
   cnhCategoria: varchar("cnhCategoria", { length: 16 }),
   cnhVencimento: date("cnhVencimento"),
   cnhCursoVan: mysqlEnum("cnhCursoVan", ["Sim", "Não"]),
+  sexo: mysqlEnum("sexo", ["Masculino", "Feminino"]),
+  regimeAposentadoria: mysqlEnum("regimeAposentadoria", ["Regra permanente", "Transição por pontos", "Transição por pedágio"]),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
