@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, like, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { contacts, detectedPublications, frequenciasTerceirizados, functionalActs, importConflicts, importRuns, InsertUser, interns, productionIncentives, redaCadastros, redaEfetivosCobertos, serverChangeHistory, servers, serviceRecords, terceirizados, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -210,6 +210,53 @@ export async function updateDetectedPublicationStatus(id: number, reviewStatus: 
     }
   }
   return { ...existing, reviewStatus };
+}
+
+/**
+ * Registra um achado confirmado manualmente (ex.: despacho SEI que a Lala
+ * ainda não encontrou via DOOL, ou que corrige/atualiza um achado anterior
+ * desatualizado). Ao contrário da ingestão automática
+ * (searchAndRegisterDoolFindings), aqui quem está inserindo já conferiu a
+ * fonte pessoalmente, então o achado entra direto como "approved"/"confirmado"
+ * — não passa pela fila de revisão.
+ */
+export async function createManualDetectedPublication(input: {
+  matricula: string;
+  nomeOriginal?: string | null;
+  eventType: string;
+  actNumber?: string | null;
+  processoSei?: string | null;
+  publicationDate?: string | null;
+  description: string;
+  documentUrl?: string | null;
+  changedBy: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const fingerprint = createHash("sha256")
+    .update(`manual|${input.matricula}|${input.eventType}|${input.publicationDate ?? ""}|${input.description}`)
+    .digest("hex");
+  await db.insert(detectedPublications).values({
+    matricula: input.matricula,
+    nomeOriginal: input.nomeOriginal ?? null,
+    sourceKey: "manual",
+    sourceLabel: `Registro manual · ${input.changedBy}`,
+    sourceUrl: null,
+    documentUrl: input.documentUrl ?? null,
+    eventType: input.eventType,
+    actNumber: input.actNumber ?? null,
+    processoSei: input.processoSei ?? null,
+    publicationDate: input.publicationDate ? new Date(`${input.publicationDate}T00:00:00.000Z`) : null,
+    description: input.description,
+    documentText: null,
+    scanMode: "individual" as const,
+    intelligenceStatus: "confirmado" as const,
+    masterValue: null,
+    foundValue: null,
+    fingerprint,
+    reviewStatus: "approved" as const,
+  });
+  return { fingerprint };
 }
 
 export async function listReviewQueue(status?: "pending" | "resolved" | "ignored") {

@@ -5,7 +5,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { terceirizados } from "../drizzle/schema";
-import { createServerRecord, createRedaCadastro, createRedaEfetivoCoberto, deleteServerRecord, encerrarRedaEfetivoCoberto, getFunctionalSummary, listDetectedPublications, listFunctionalData, listReviewQueue, listServerChangeHistory, updateDetectedPublicationStatus, updateRedaCadastro, updateReviewConflict, updateServerRecord, updateTerceirizadoRecord } from "./db";
+import { createManualDetectedPublication, createServerRecord, createRedaCadastro, createRedaEfetivoCoberto, deleteServerRecord, encerrarRedaEfetivoCoberto, getFunctionalSummary, listDetectedPublications, listFunctionalData, listReviewQueue, listServerChangeHistory, updateDetectedPublicationStatus, updateRedaCadastro, updateReviewConflict, updateServerRecord, updateTerceirizadoRecord } from "./db";
 import { searchAndRegisterDoolFindings } from "./doolSearch";
 
 const nullableText = z.string().nullable().optional().transform(value => value === "" ? null : value);
@@ -198,6 +198,7 @@ const nullableDate = z.string().nullable().optional().transform(value => value ?
     reviewQueue: protectedProcedure.input(z.object({ status: z.enum(["pending", "resolved", "ignored"]).optional() }).default({})).query(({ input }) => listReviewQueue(input.status)),
     detectedPublications: protectedProcedure.input(z.object({ limit: z.number().int().min(1).max(500).default(100) })).query(({ input }) => listDetectedPublications(input.limit)),
     updateDetectedPublicationStatus: protectedProcedure.input(z.object({ id: z.number().int().positive(), reviewStatus: z.enum(["approved", "discarded"]), changedBy: z.string().optional() })).mutation(({ input }) => updateDetectedPublicationStatus(input.id, input.reviewStatus, input.changedBy ?? "modo-demo")),
+    createManualDetectedPublication: protectedProcedure.input(z.object({ matricula: z.string().min(1).max(32), nomeOriginal: z.string().optional(), eventType: z.string().min(1).max(80), actNumber: z.string().max(180).optional(), processoSei: z.string().max(180).optional(), publicationDate: z.string().optional(), description: z.string().min(1), documentUrl: z.string().max(500).optional(), changedBy: z.string().optional() })).mutation(({ input }) => createManualDetectedPublication({ ...input, changedBy: input.changedBy ?? "modo-demo" })),
     searchDool: protectedProcedure.input(z.object({ matricula: z.string().min(1).max(32), nomeOriginal: z.string().optional() })).mutation(({ input }) => searchAndRegisterDoolFindings(input.matricula, input.nomeOriginal)),
     reviewConflict: protectedProcedure.input(z.object({ id: z.number().int().positive(), status: z.enum(["resolved", "ignored"]), changedBy: z.string().optional() })).mutation(({ input }) => updateReviewConflict(input.id, input.status, input.changedBy ?? "modo-demo")),
   }),
