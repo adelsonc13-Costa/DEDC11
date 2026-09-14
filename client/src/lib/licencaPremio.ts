@@ -1,4 +1,4 @@
-export type StatusQuinquenio = "gozado" | "pecunia" | "aberto";
+export type StatusQuinquenio = "gozado" | "pecunia" | "pecunia_pendente" | "aberto";
 
 export type Quinquenio = {
   inicio: Date;
@@ -33,6 +33,10 @@ const PADRAO_PECUNIA_PENDENTE = /pec[uú]nia[^.]*(em andamento|sem confirma[cç]
 const PADRAO_PECUNIA_CONFIRMADA = /convertid[oa]\s+em\s+pec[uú]nia|pec[uú]nia\s+(paga|deferida|confirmada)/i;
 const PADRAO_GOZADO = /\bgozad[oa]\b|\bgozou\b|usufruiu\s+(integralmente|o\s+per[ií]odo)/i;
 
+// Ordem de prioridade ao classificar: um pedido de pecunia "em andamento" e a
+// informacao mais especifica e acionavel (ha algo pendente de resposta), entao
+// tem prioridade sobre o "em aberto" generico e sobre a pecunia ja confirmada.
+
 function somarAnos(data: Date, anos: number): Date {
   const resultado = new Date(data);
   resultado.setUTCFullYear(resultado.getUTCFullYear() + anos);
@@ -66,14 +70,15 @@ function bateComJanela(mencao: [number, number], anoInicio: number, anoFim: numb
 
 /**
  * A partir do texto de um achado que genuinamente fala desse quinquenio,
- * decide o status real (aberto/pecunia/gozado) olhando o desfecho descrito —
- * nao a categoria do achado, que so diz do assunto, nao do resultado.
+ * decide o status real (gozado/pecunia/pecunia_pendente/aberto) olhando o
+ * desfecho descrito — nao a categoria do achado, que so diz do assunto, nao
+ * do resultado.
  */
 function classificarDesfecho(texto: string | null | undefined): StatusQuinquenio | null {
   if (!texto) return null;
-  if (PADRAO_ABERTO.test(texto)) return "aberto";
-  if (PADRAO_PECUNIA_PENDENTE.test(texto)) return "aberto";
+  if (PADRAO_PECUNIA_PENDENTE.test(texto)) return "pecunia_pendente";
   if (PADRAO_PECUNIA_CONFIRMADA.test(texto)) return "pecunia";
+  if (PADRAO_ABERTO.test(texto)) return "aberto";
   if (PADRAO_GOZADO.test(texto)) return "gozado";
   return null;
 }
@@ -147,8 +152,12 @@ export function calcularQuinqueniosLicencaPremio(params: {
   return janelas;
 }
 
-/** Atalho pra contar quantos quinquenios estao em aberto (uso em telas de lista/resumo). */
+/**
+ * Atalho pra contar quantos quinquenios ainda precisam de atencao (uso em
+ * telas de lista/resumo) - conta "aberto" (nada resolvido) e tambem
+ * "pecunia_pendente" (ha pedido de pecunia em andamento, ainda sem resposta).
+ */
 export function contarQuinqueniosEmAberto(quinquenios: Quinquenio[] | null): number {
   if (!quinquenios) return 0;
-  return quinquenios.filter(q => q.status === "aberto").length;
+  return quinquenios.filter(q => q.status === "aberto" || q.status === "pecunia_pendente").length;
 }
