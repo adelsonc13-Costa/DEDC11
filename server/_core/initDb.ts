@@ -276,6 +276,8 @@ export async function ensureTablesExist() {
       { table: "detectedPublications", column: "foundValue", definition: "TEXT" },
       { table: "detectedPublications", column: "applyField", definition: "VARCHAR(40)" },
       { table: "detectedPublications", column: "applyValue", definition: "VARCHAR(200)" },
+      { table: "terceirizados", column: "sexo", definition: "ENUM('Masculino','Feminino')" },
+      { table: "terceirizados", column: "dataInicioContribuicaoInss", definition: "DATE" },
     ];
 
     for (const { table, column, definition } of columnsToAdd) {
